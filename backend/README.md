@@ -14,6 +14,11 @@ This folder will hold the FastAPI + Celery backend.
 - `GET /health`: process OK
 - `GET /ready`: DB connectivity check
 
+## Migrations
+- Apply schema: `alembic upgrade head`
+- The initial migration sets the `vector(1536)` embedding dimension. If you
+  change embedding models later, add a migration to adjust the column.
+
 ## Layout (planned)
 - `app/core/`: settings, logging, feature flags.
 - `app/db/`: schema, migrations, models, repositories.
