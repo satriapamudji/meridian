@@ -6,7 +6,13 @@ This task turns `spec.md` into an implementation-oriented “where does code liv
 
 - Provide a clear, shared repo layout for contributors.
 - Map each major spec area → code location(s) → responsibilities.
-- Define build scopes that can later become `task-01.md`, `task-02.md`, etc.
+- Define epics (workstreams) and a task backlog that breaks them into smaller, sequential task files.
+
+## How Tasks Work (Option B)
+
+- **Epics/workstreams** are the big scopes (e.g., “Ingestion Pipelines”).
+- **Tasks** (`task-01.md`, `task-02.md`, …) are smaller, buildable increments that roll up into an epic.
+- Task numbering is a suggested sequence, not a hard dependency graph (use each task’s “Depends on” field).
 
 ## Proposed Repo Layout (target end-state)
 
@@ -117,9 +123,9 @@ These tables are the “spine” of the app: ingestion populates them, analysis 
   - `backend/app/analysis/counter_thesis/` — scheduled challenges + invalidation proximity
   - `frontend/src/app/performance/` — performance + learning UI
 
-## Scopes / Workstreams (what we will build)
+## Epics / Workstreams (what we will build)
 
-Use these as the canonical work breakdown. Each scope should become a future `task-XX.md`.
+Use these as the canonical workstreams. Tasks live in separate `task-XX.md` files and roll up into these epics.
 
 1. **Repo + Dev Environment**
    - Add `backend/`, `frontend/`, `ops/` scaffolding, local Postgres/Redis, env var conventions.
@@ -148,6 +154,34 @@ Use these as the canonical work breakdown. Each scope should become a future `ta
 9. **Learning Loop (Phase 3)**
    - Outcome tracking, performance metrics, counter-thesis engine + scheduled challenges.
 
+## Backlog Index (tasks)
+
+| Task | Title | Epic | Phase |
+|------|-------|------|-------|
+| `task-01.md` | Establish Repo Skeleton | 1 | 1 |
+| `task-02.md` | Local Dev Environment (Postgres + Redis) | 1 | 1 |
+| `task-03.md` | Backend Bootstrap (FastAPI + Settings + Health) | 1 | 1 |
+| `task-04.md` | Database Migrations + Core Schema | 2 | 1 |
+| `task-05.md` | Seed Loader Framework + Metals Knowledge Import | 2 | 1 |
+| `task-06.md` | Seed Historical Cases + Embeddings Plumbing | 2 | 1 |
+| `task-07.md` | RSS Macro News Ingestion (Events) | 3 | 1 |
+| `task-08.md` | Central Bank Comms Ingestion (Fed First) | 3 | 1 |
+| `task-09.md` | Economic Calendar Ingestion + Surprise Detection | 3 | 1 |
+| `task-10.md` | Price Ingestion (Metals + ETFs + Ratio) | 3 | 1 |
+| `task-11.md` | Significance Scoring Engine (0–100) | 4 | 1 |
+| `task-12.md` | LLM Provider Abstraction + Macro Event Analysis Pipeline | 4 | 1 |
+| `task-13.md` | Historical Matching (pgvector Similarity Search) | 4 | 1 |
+| `task-14.md` | Macro → Crypto Transmission Evaluation | 4 | 1 |
+| `task-15.md` | API: Macro Events + Analysis | 5 | 1 |
+| `task-16.md` | API: Thesis Workspace (CRUD + Updates + Export) | 5 | 1 |
+| `task-17.md` | API: Daily Digest + Metals Snapshot | 6 | 1 |
+| `task-18.md` | Frontend Bootstrap (Next.js + Layout + API Client) | 5 | 1 |
+| `task-19.md` | UI: Macro Radar (List + Filters) | 5 | 1 |
+| `task-20.md` | UI: Event Detail (Raw vs Interpretation) | 5 | 1 |
+| `task-21.md` | UI: Thesis Workspace | 5 | 1 |
+| `task-22.md` | Telegram Bot Bootstrap + Command Router | 6 | 1 |
+| `task-23.md` | Scheduler + Daily Jobs (Ingestion + Digest) | 6 | 1 |
+
 ## Key Interfaces (contracts between parts)
 
 Keep these stable to avoid rework:
@@ -162,4 +196,3 @@ Keep these stable to avoid rework:
 - Thesis-building > reactive execution; daily OHLCV is acceptable.
 - LLM usage is scoped: heavy model for synthesis, cheap/local model for extraction/classification.
 - ⚡ PRIORITY gating (≥65) drives attention model and alerting.
-
