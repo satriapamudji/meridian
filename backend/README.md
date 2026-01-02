@@ -3,6 +3,9 @@
 This folder will hold the FastAPI + Celery backend.
 
 ## Local run (planned)
+- From the repo root, start Postgres + Redis:
+  `docker compose -f ops/docker-compose.yml up -d`.
+- Copy `backend/.env.example` to `backend/.env` and adjust as needed.
 - Create a virtualenv.
 - Install dependencies (added in task-03).
 - Start the API: `uvicorn app.main:app --reload`.
