@@ -3,6 +3,7 @@
 This folder will hold the Next.js app (App Router).
 
 ## Local run (planned)
+- Copy `frontend/.env.example` to `frontend/.env.local`.
 - Install dependencies: `npm install`.
 - Start the dev server: `npm run dev`.
 
