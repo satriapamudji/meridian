@@ -32,6 +32,14 @@ This folder will hold the FastAPI + Celery backend.
 - Query similar cases by vector distance:
   `python -m app.db.similar_cases --embedding-file path/to/embedding.json`
 
+## RSS ingestion
+- Run once with default feeds:
+  `python -m app.ingestion.rss_poller`
+- Poll on an interval (seconds):
+  `python -m app.ingestion.rss_poller --interval 900`
+- Override with a single feed:
+  `python -m app.ingestion.rss_poller --source reuters --url https://feeds.reuters.com/reuters/topNews`
+
 ## Layout (planned)
 - `app/core/`: settings, logging, feature flags.
 - `app/db/`: schema, migrations, models, repositories.
