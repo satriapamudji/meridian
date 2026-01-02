@@ -1,0 +1,51 @@
+{
+  "event_name": "2020 COVID Shock",
+  "date_range": "2020-02 to 2020-08",
+  "event_type": "pandemic",
+  "significance_score": 90,
+  "structural_drivers": [
+    "Global shutdowns and supply chain shocks",
+    "Aggressive fiscal and monetary stimulus",
+    "Risk-off volatility spike"
+  ],
+  "metal_impacts": {
+    "gold": {
+      "direction": "up",
+      "magnitude": "+25-35% over 6 months",
+      "driver": "Real rates collapse and stimulus"
+    },
+    "silver": {
+      "direction": "up",
+      "magnitude": "+100% from lows",
+      "driver": "Industrial rebound and high beta to gold"
+    },
+    "copper": {
+      "direction": "down_then_up",
+      "magnitude": "Sharp dip then V-shaped recovery",
+      "driver": "China demand and reopening"
+    }
+  },
+  "traditional_market_reaction": [
+    "Equities cratered then rebounded",
+    "Rates cut to zero with QE expansion"
+  ],
+  "crypto_reaction": [
+    "BTC sold off in March, then recovered strongly"
+  ],
+  "crypto_transmission": {
+    "exists": true,
+    "path": "Liquidity expansion to scarce asset narrative",
+    "strength": "moderate"
+  },
+  "time_delays": [
+    "Gold rally accelerated after policy response",
+    "Silver lagged gold by weeks"
+  ],
+  "lessons": [
+    "Liquidity shocks can briefly overwhelm safe-haven behavior",
+    "High beta metals outperform in reflation phase"
+  ],
+  "counter_examples": [
+    "Initial liquidation phase sold down all assets"
+  ]
+}

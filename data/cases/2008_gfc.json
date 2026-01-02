@@ -1,0 +1,50 @@
+{
+  "event_name": "2008 Global Financial Crisis",
+  "date_range": "2007-09 to 2009-06",
+  "event_type": "financial_crisis",
+  "significance_score": 95,
+  "structural_drivers": [
+    "Housing credit bubble unwind",
+    "Bank balance sheet stress and deleveraging",
+    "Global liquidity shock"
+  ],
+  "metal_impacts": {
+    "gold": {
+      "direction": "up",
+      "magnitude": "+20-50% over 12-24 months",
+      "driver": "Flight to safety and policy easing"
+    },
+    "silver": {
+      "direction": "volatile",
+      "magnitude": "Sharp drawdown then recovery",
+      "driver": "Industrial demand shock then monetary rebound"
+    },
+    "copper": {
+      "direction": "down",
+      "magnitude": "-50% then recovery",
+      "driver": "Collapse in global demand"
+    }
+  },
+  "traditional_market_reaction": [
+    "Equities sold off sharply",
+    "Credit spreads widened dramatically",
+    "USD strengthened in risk-off"
+  ],
+  "crypto_reaction": [],
+  "crypto_transmission": {
+    "exists": false,
+    "path": "",
+    "strength": "none"
+  },
+  "time_delays": [
+    "Gold bottomed after initial liquidity selloff",
+    "Copper lagged until stimulus took hold"
+  ],
+  "lessons": [
+    "Policy response dominates medium-term metals moves",
+    "Liquidity shocks can temporarily sell off safe havens"
+  ],
+  "counter_examples": [
+    "Early crisis phase saw gold dip before rallying"
+  ]
+}

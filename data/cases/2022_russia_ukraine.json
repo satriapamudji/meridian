@@ -1,0 +1,52 @@
+{
+  "event_name": "2022 Russia-Ukraine War",
+  "date_range": "2022-02 to 2022-06",
+  "event_type": "geopolitical_conflict",
+  "significance_score": 85,
+  "structural_drivers": [
+    "Energy and commodity supply disruptions",
+    "Sanctions and trade rerouting",
+    "Defense spending surge"
+  ],
+  "metal_impacts": {
+    "gold": {
+      "direction": "up",
+      "magnitude": "+5-10% spike",
+      "driver": "Safe-haven bid on conflict escalation"
+    },
+    "silver": {
+      "direction": "up",
+      "magnitude": "Moderate spike",
+      "driver": "Safe-haven plus industrial uncertainty"
+    },
+    "copper": {
+      "direction": "down",
+      "magnitude": "Weakness on growth fears",
+      "driver": "Recession risk from energy shock"
+    }
+  },
+  "traditional_market_reaction": [
+    "Energy prices spiked",
+    "European equities underperformed",
+    "Inflation expectations rose"
+  ],
+  "crypto_reaction": [
+    "BTC short-term volatility; narratives split between risk-off and sanctions"
+  ],
+  "crypto_transmission": {
+    "exists": true,
+    "path": "Sanctions and capital controls -> BTC as alternative rail",
+    "strength": "weak"
+  },
+  "time_delays": [
+    "Gold spike faded as conflict stabilized",
+    "Copper weakness extended with growth fears"
+  ],
+  "lessons": [
+    "Geopolitical spikes can fade quickly without escalation",
+    "Industrial metals track growth expectations more than headlines"
+  ],
+  "counter_examples": [
+    "Some conflicts fail to sustain metals rallies"
+  ]
+}

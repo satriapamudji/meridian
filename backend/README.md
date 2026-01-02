@@ -23,6 +23,15 @@ This folder will hold the FastAPI + Celery backend.
 - Start services: `docker compose -f ops/docker-compose.yml up -d`
 - Run: `python -m app.db.seed_metals`
 
+## Seed historical cases
+- Run: `python -m app.db.seed_cases`
+
+## Embeddings plumbing
+- Apply embeddings from a JSON file:
+  `python -m app.db.embeddings --embeddings-file path/to/embeddings.json`
+- Query similar cases by vector distance:
+  `python -m app.db.similar_cases --embedding-file path/to/embedding.json`
+
 ## Layout (planned)
 - `app/core/`: settings, logging, feature flags.
 - `app/db/`: schema, migrations, models, repositories.
