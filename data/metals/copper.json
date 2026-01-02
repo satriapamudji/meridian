@@ -1,0 +1,82 @@
+{
+  "metal": "copper",
+  "categories": {
+    "supply_chain": {
+      "top_producers": [
+        {"country": "Chile", "share": "27%", "notes": "Largest producer"},
+        {"country": "Peru", "share": "10%", "notes": "Policy and strike risk"},
+        {"country": "DRC", "share": "8%", "notes": "Geopolitical risk"}
+      ],
+      "top_consumers": [
+        {"sector": "Construction", "share": "35%"},
+        {"sector": "Electrical", "share": "25%"},
+        {"sector": "Transport", "share": "15%"}
+      ],
+      "chokepoints": [
+        "Concentrated production in South America",
+        "Smelter bottlenecks affect refined supply"
+      ]
+    },
+    "use_cases": {
+      "monetary": [
+        "No monetary role; pure growth signal"
+      ],
+      "investment": [
+        "Macro proxy for global growth"
+      ],
+      "industrial": [
+        "Construction and infrastructure",
+        "Electrification and EVs"
+      ]
+    },
+    "patterns": [
+      {
+        "trigger": "China stimulus",
+        "typical_response": "Sharp demand-led rallies",
+        "examples": ["2009", "2016"]
+      },
+      {
+        "trigger": "Global recession",
+        "typical_response": "Fast drawdowns and inventory build",
+        "examples": ["2008", "2020 Q1"]
+      }
+    ],
+    "correlations": {
+      "assets": [
+        {
+          "asset": "Global PMI",
+          "relationship": "Positive",
+          "notes": "Copper tracks manufacturing cycles"
+        },
+        {
+          "asset": "USD (DXY)",
+          "relationship": "Inverse",
+          "notes": "Stronger USD pressures commodities"
+        }
+      ],
+      "ratios": [
+        {
+          "name": "Copper/Gold Ratio",
+          "context": "Growth vs. safety signal",
+          "signal": "Falling ratio can indicate risk-off"
+        }
+      ]
+    },
+    "actors": {
+      "central_banks": [
+        "Not a monetary metal; policy impacts via growth outlook"
+      ],
+      "etf_flows": [
+        "CPER ETF as a sentiment gauge"
+      ],
+      "miners": [
+        "Freeport-McMoRan",
+        "Codelco"
+      ],
+      "speculators": [
+        "LME positioning",
+        "China demand headlines"
+      ]
+    }
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "metal": "silver",
+  "categories": {
+    "supply_chain": {
+      "top_producers": [
+        {"country": "Mexico", "share": "23%", "notes": "Largest producer"},
+        {"country": "China", "share": "12%", "notes": "Significant byproduct output"},
+        {"country": "Peru", "share": "10%", "notes": "Mining policy risk"}
+      ],
+      "top_consumers": [
+        {"sector": "Industrial", "share": "55%", "notes": "Electronics, solar"},
+        {"sector": "Jewelry/Silverware", "share": "20%"},
+        {"sector": "Investment", "share": "20%"}
+      ],
+      "chokepoints": [
+        "Byproduct dependence on base metal mining cycles",
+        "Solar demand growth tightens supply"
+      ]
+    },
+    "use_cases": {
+      "monetary": [
+        "Smaller store of value, more volatile than gold"
+      ],
+      "investment": [
+        "High beta to gold moves",
+        "Retail-driven flows via SLV and coins"
+      ],
+      "industrial": [
+        "Solar PV demand",
+        "Electronics and soldering"
+      ]
+    },
+    "patterns": [
+      {
+        "trigger": "Gold breakout",
+        "typical_response": "Lagged catch-up rallies with higher beta",
+        "examples": ["2011", "2020"]
+      },
+      {
+        "trigger": "Industrial demand cycle upturn",
+        "typical_response": "Sustained trend if manufacturing stays strong",
+        "examples": ["2006-2007"]
+      }
+    ],
+    "correlations": {
+      "assets": [
+        {
+          "asset": "Gold",
+          "relationship": "Positive",
+          "notes": "Silver amplifies gold trends"
+        },
+        {
+          "asset": "Industrial activity (PMI)",
+          "relationship": "Positive",
+          "notes": "Industrial demand is a core driver"
+        }
+      ],
+      "ratios": [
+        {
+          "name": "Gold/Silver Ratio",
+          "context": "Mean ~60, extremes 40-100",
+          "signal": "Above 80 can signal silver undervaluation"
+        }
+      ]
+    },
+    "actors": {
+      "central_banks": [
+        "Minimal direct silver holdings"
+      ],
+      "etf_flows": [
+        "SLV (iShares) - primary silver ETF"
+      ],
+      "miners": [
+        "Fresnillo",
+        "First Majestic"
+      ],
+      "speculators": [
+        "COMEX positioning",
+        "Retail-driven bursts"
+      ]
+    }
+  }
+}

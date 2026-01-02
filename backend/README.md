@@ -19,6 +19,10 @@ This folder will hold the FastAPI + Celery backend.
 - The initial migration sets the `vector(1536)` embedding dimension. If you
   change embedding models later, add a migration to adjust the column.
 
+## Seed metals knowledge
+- Start services: `docker compose -f ops/docker-compose.yml up -d`
+- Run: `python -m app.db.seed_metals`
+
 ## Layout (planned)
 - `app/core/`: settings, logging, feature flags.
 - `app/db/`: schema, migrations, models, repositories.

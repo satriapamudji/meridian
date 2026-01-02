@@ -1,0 +1,94 @@
+{
+  "metal": "gold",
+  "categories": {
+    "supply_chain": {
+      "top_producers": [
+        {"country": "China", "share": "11%", "notes": "High domestic use, limited exports"},
+        {"country": "Australia", "share": "10%", "notes": "Stable exporter"},
+        {"country": "Russia", "share": "9%", "notes": "Sanctions risk"}
+      ],
+      "top_consumers": [
+        {"sector": "Jewelry", "share": "50%", "regions": ["India", "China"]},
+        {"sector": "Investment", "share": "25%", "vehicles": ["ETFs", "bars", "coins"]},
+        {"sector": "Central banks", "share": "15%", "trend": "Net buyers since 2010"}
+      ],
+      "chokepoints": [
+        "Swiss refineries process a large share of global supply",
+        "London/Zurich/NYC are primary trading hubs"
+      ]
+    },
+    "use_cases": {
+      "monetary": [
+        "Store of value during uncertainty",
+        "Inflation and debasement hedge"
+      ],
+      "investment": [
+        "Portfolio diversification",
+        "ETF flows drive short-term moves"
+      ],
+      "industrial": [
+        "Electronics",
+        "Dentistry (declining)"
+      ]
+    },
+    "patterns": [
+      {
+        "trigger": "Fed rate cut cycle begins",
+        "typical_response": "+15-25% over 12 months",
+        "examples": ["2001", "2007", "2019"],
+        "counter_examples": ["1994: rate cuts with flat gold"]
+      },
+      {
+        "trigger": "Geopolitical conflict escalation",
+        "typical_response": "+5-10% initial spike, fades if contained",
+        "examples": ["1990 Gulf War", "2022 Russia/Ukraine"],
+        "counter_examples": ["2013 Syria"]
+      }
+    ],
+    "correlations": {
+      "assets": [
+        {
+          "asset": "USD (DXY)",
+          "relationship": "Inverse (-0.4 to -0.6)",
+          "notes": "Strong USD is a headwind"
+        },
+        {
+          "asset": "Real rates (10Y TIPS)",
+          "relationship": "Inverse (-0.7 to -0.9)",
+          "notes": "Negative real rates are bullish"
+        },
+        {
+          "asset": "Silver",
+          "relationship": "Positive (0.8+)",
+          "notes": "Silver is higher beta"
+        }
+      ],
+      "ratios": [
+        {
+          "name": "Gold/Silver Ratio",
+          "context": "Historical mean ~60, range 40-100",
+          "signal": "Above 80 can favor a silver catch-up thesis"
+        }
+      ]
+    },
+    "actors": {
+      "central_banks": [
+        "China PBOC - consistent buyer",
+        "Russia CBR - sanctions hedge",
+        "Turkey - volatile buyer/seller"
+      ],
+      "etf_flows": [
+        "GLD (SPDR) - largest gold ETF",
+        "IAU (iShares) - secondary signal"
+      ],
+      "miners": [
+        "Newmont (NEM)",
+        "Barrick (GOLD)"
+      ],
+      "speculators": [
+        "COMEX positioning (COT report)",
+        "Extreme positioning as contrarian signal"
+      ]
+    }
+  }
+}
