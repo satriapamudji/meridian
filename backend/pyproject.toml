@@ -8,8 +8,10 @@ version = "0.1.0"
 description = "Meridian FastAPI backend"
 requires-python = ">=3.11"
 dependencies = [
+  "alembic>=1.13",
   "fastapi>=0.110",
   "psycopg[binary]>=3.1",
+  "sqlalchemy>=2.0",
   "uvicorn[standard]>=0.27",
 ]
 
@@ -25,6 +27,10 @@ dev = [
 python_version = "3.11"
 ignore_missing_imports = true
 warn_unused_ignores = true
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+exclude = ["alembic*"]
 
 [tool.ruff]
 line-length = 100
