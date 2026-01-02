@@ -23,3 +23,31 @@ Each JSON file in `data/metals/` represents one metal with required categories.
   }
 }
 ```
+
+## Historical cases seed format
+
+Each JSON file in `data/cases/` is a single historical case aligned to Appendix B:
+
+```
+{
+  "event_name": "2020 COVID Shock",
+  "date_range": "2020-02 to 2020-08",
+  "event_type": "pandemic",
+  "significance_score": 90,
+  "structural_drivers": ["..."],
+  "metal_impacts": {
+    "gold": {"direction": "up", "magnitude": "+25%", "driver": "..."},
+    "silver": {"direction": "up", "magnitude": "+100%", "driver": "..."},
+    "copper": {"direction": "down_then_up", "magnitude": "...", "driver": "..."}
+  },
+  "traditional_market_reaction": ["..."],
+  "crypto_reaction": ["..."],
+  "crypto_transmission": {"exists": true, "path": "...", "strength": "moderate"},
+  "time_delays": ["..."],
+  "lessons": ["..."],
+  "counter_examples": ["..."]
+}
+```
+
+Embeddings are optional; when ready, apply them via the CLI in `backend/app/db/embeddings.py`
+using a JSON list of `{event_name, date_range, embedding}` entries.
