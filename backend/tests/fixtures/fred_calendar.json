@@ -1,0 +1,22 @@
+{
+  "releases": [
+    {
+      "id": 10,
+      "name": "Consumer Price Index"
+    },
+    {
+      "id": 20,
+      "name": "Employment Situation"
+    }
+  ],
+  "release_dates": [
+    {
+      "release_id": 10,
+      "date": "2026-02-05"
+    },
+    {
+      "release_id": 20,
+      "date": "2026-02-07"
+    }
+  ]
+}

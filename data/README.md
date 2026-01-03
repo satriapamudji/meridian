@@ -51,3 +51,24 @@ Each JSON file in `data/cases/` is a single historical case aligned to Appendix 
 
 Embeddings are optional; when ready, apply them via the CLI in `backend/app/db/embeddings.py`
 using a JSON list of `{event_name, date_range, embedding}` entries.
+
+## Calendar seed format
+
+Each JSON file in `data/calendar/` contains a list of upcoming events.
+
+```
+{
+  "source": "sample",
+  "events": [
+    {
+      "event_name": "US CPI (YoY)",
+      "event_date": "2026-02-05T13:30:00Z",
+      "region": "US",
+      "impact_level": "high",
+      "expected": "3.1%",
+      "actual": "3.0%",
+      "previous": "3.2%"
+    }
+  ]
+}
+```

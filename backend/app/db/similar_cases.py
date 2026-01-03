@@ -5,9 +5,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-import psycopg
-
-from app.core.settings import get_settings, normalize_database_url
+from app.analysis.historical import find_similar_cases as find_similar_matches
 from app.db.embeddings import format_embedding
 
 
@@ -20,33 +18,16 @@ def load_embedding_vector(path: Path) -> list[float]:
 
 
 def find_similar_cases(embedding: list[float], limit: int = 5) -> list[dict[str, Any]]:
-    settings = get_settings()
-    database_url = normalize_database_url(settings.database_url)
-    query = """
-        SELECT event_name,
-               date_range,
-               event_type,
-               significance_score,
-               embedding <-> %(embedding)s::vector AS distance
-        FROM historical_cases
-        WHERE embedding IS NOT NULL
-        ORDER BY embedding <-> %(embedding)s::vector
-        LIMIT %(limit)s
-    """
-    params = {"embedding": format_embedding(embedding), "limit": limit}
-
-    with psycopg.connect(database_url) as conn:
-        rows = conn.execute(query, params).fetchall()
-
+    matches = find_similar_matches(embedding, limit=limit)
     return [
         {
-            "event_name": row[0],
-            "date_range": row[1],
-            "event_type": row[2],
-            "significance_score": row[3],
-            "distance": float(row[4]),
+            "event_name": match.event_name,
+            "date_range": match.date_range,
+            "event_type": match.event_type,
+            "significance_score": match.significance_score,
+            "distance": match.distance,
         }
-        for row in rows
+        for match in matches
     ]
 
 

@@ -5,6 +5,9 @@ import logging
 from fastapi import FastAPI, HTTPException
 import psycopg
 
+from app.api.digest import router as digest_router
+from app.api.events import router as events_router
+from app.api.theses import router as theses_router
 from app.core.logging import configure_logging
 from app.core.settings import get_settings, normalize_database_url
 
@@ -33,6 +36,10 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=503, detail="database unavailable") from exc
 
         return {"status": "ready"}
+
+    app.include_router(events_router)
+    app.include_router(digest_router)
+    app.include_router(theses_router)
 
     return app
 
