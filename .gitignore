@@ -9,3 +9,5 @@ backend/.env
 frontend/.env.local
 
 node_modules/
+frontend/.next/
+frontend/tsconfig.tsbuildinfo
