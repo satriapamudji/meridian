@@ -4,12 +4,29 @@ import argparse
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
+import logging
+import random
+import time
 from typing import Iterable
+from urllib.error import HTTPError, URLError
 import xml.etree.ElementTree as ET
 
 import psycopg
 
 from app.core.settings import get_settings, normalize_database_url
+
+logger = logging.getLogger(__name__)
+
+# Retry/backoff configuration
+MAX_RETRIES = 3
+BACKOFF_BASE_DELAY = 2.0  # seconds
+BACKOFF_MAX_DELAY = 60.0  # seconds
+BACKOFF_MULTIPLIER = 2.0
+JITTER_RANGE = 0.5  # +/- 50% jitter
+REQUEST_TIMEOUT = 15  # seconds
+
+# Rate limit detection
+RATE_LIMIT_CODES = {429, 403, 503}
 
 
 @dataclass(frozen=True)
@@ -123,12 +140,134 @@ def load_feed_file(path: str) -> str:
     return open(path, "r", encoding="utf-8").read()
 
 
+class RateLimitError(Exception):
+    """Raised when a feed returns a rate limit response."""
+
+    def __init__(self, url: str, status_code: int, retry_after: float | None = None):
+        self.url = url
+        self.status_code = status_code
+        self.retry_after = retry_after
+        super().__init__(f"Rate limited ({status_code}) for {url}")
+
+
 def fetch_feed(url: str) -> str:
+    """Fetch RSS feed with retry and exponential backoff."""
     import urllib.request
 
-    request = urllib.request.Request(url, headers={"User-Agent": "MeridianBot/0.1"})
-    with urllib.request.urlopen(request, timeout=10) as response:
-        return response.read().decode("utf-8", errors="ignore")
+    last_error: Exception | None = None
+
+    for attempt in range(MAX_RETRIES):
+        try:
+            request = urllib.request.Request(
+                url,
+                headers={
+                    "User-Agent": "Mozilla/5.0 (compatible; MeridianBot/0.1)",
+                    "Accept": "application/rss+xml, application/xml, text/xml, */*",
+                },
+            )
+            with urllib.request.urlopen(request, timeout=REQUEST_TIMEOUT) as response:
+                return response.read().decode("utf-8", errors="ignore")
+
+        except HTTPError as exc:
+            last_error = exc
+            if exc.code in RATE_LIMIT_CODES:
+                # Parse Retry-After header if present
+                retry_after = _parse_retry_after(exc.headers.get("Retry-After"))
+                if attempt < MAX_RETRIES - 1:
+                    delay = _calculate_backoff(attempt, retry_after)
+                    logger.warning(
+                        "Rate limited (%s) fetching %s, retrying in %.1fs (attempt %d/%d)",
+                        exc.code,
+                        url,
+                        delay,
+                        attempt + 1,
+                        MAX_RETRIES,
+                    )
+                    time.sleep(delay)
+                    continue
+                raise RateLimitError(url, exc.code, retry_after) from exc
+            elif exc.code >= 500:
+                # Server error - retry with backoff
+                if attempt < MAX_RETRIES - 1:
+                    delay = _calculate_backoff(attempt)
+                    logger.warning(
+                        "Server error (%s) fetching %s, retrying in %.1fs (attempt %d/%d)",
+                        exc.code,
+                        url,
+                        delay,
+                        attempt + 1,
+                        MAX_RETRIES,
+                    )
+                    time.sleep(delay)
+                    continue
+            raise
+
+        except URLError as exc:
+            last_error = exc
+            if attempt < MAX_RETRIES - 1:
+                delay = _calculate_backoff(attempt)
+                logger.warning(
+                    "Network error fetching %s: %s, retrying in %.1fs (attempt %d/%d)",
+                    url,
+                    exc.reason,
+                    delay,
+                    attempt + 1,
+                    MAX_RETRIES,
+                )
+                time.sleep(delay)
+                continue
+            raise
+
+        except Exception as exc:
+            last_error = exc
+            if attempt < MAX_RETRIES - 1:
+                delay = _calculate_backoff(attempt)
+                logger.warning(
+                    "Error fetching %s: %s, retrying in %.1fs (attempt %d/%d)",
+                    url,
+                    exc,
+                    delay,
+                    attempt + 1,
+                    MAX_RETRIES,
+                )
+                time.sleep(delay)
+                continue
+            raise
+
+    # Should not reach here, but just in case
+    if last_error:
+        raise last_error
+    raise RuntimeError(f"Failed to fetch {url} after {MAX_RETRIES} attempts")
+
+
+def _calculate_backoff(attempt: int, retry_after: float | None = None) -> float:
+    """Calculate backoff delay with exponential increase and jitter."""
+    if retry_after is not None and retry_after > 0:
+        # Use server-provided retry-after, but cap it
+        base_delay = min(retry_after, BACKOFF_MAX_DELAY)
+    else:
+        # Exponential backoff: 2s, 4s, 8s, ...
+        base_delay = min(BACKOFF_BASE_DELAY * (BACKOFF_MULTIPLIER**attempt), BACKOFF_MAX_DELAY)
+
+    # Add jitter (+/- 50%)
+    jitter = base_delay * JITTER_RANGE * (2 * random.random() - 1)
+    return max(0.1, base_delay + jitter)
+
+
+def _parse_retry_after(header: str | None) -> float | None:
+    """Parse Retry-After header (seconds or HTTP date)."""
+    if not header:
+        return None
+    try:
+        return float(header)
+    except ValueError:
+        pass
+    try:
+        retry_date = parsedate_to_datetime(header)
+        delta = retry_date - datetime.now(timezone.utc)
+        return max(0, delta.total_seconds())
+    except (TypeError, ValueError):
+        return None
 
 
 def ingest_feed(feed_xml: str, source: str) -> int:
@@ -138,14 +277,51 @@ def ingest_feed(feed_xml: str, source: str) -> int:
     return insert_events(entries)
 
 
-def ingest_sources(sources: Iterable[FeedConfig]) -> dict[str, int]:
+def ingest_sources(
+    sources: Iterable[FeedConfig],
+    delay_between_feeds: float = 1.0,
+    delay_jitter: float = 1.0,
+) -> dict[str, int]:
+    """
+    Ingest multiple RSS feeds with rate limiting awareness.
+
+    Args:
+        sources: Feed configurations to ingest
+        delay_between_feeds: Base delay between feed fetches (seconds)
+        delay_jitter: Random jitter added to delay (0 to jitter seconds)
+
+    Returns:
+        Dict mapping source name to number of events inserted
+    """
     results: dict[str, int] = {}
-    for feed in sources:
+    sources_list = list(sources)
+
+    for idx, feed in enumerate(sources_list):
         try:
             feed_xml = fetch_feed(feed.url)
-            results[feed.source] = ingest_feed(feed_xml, feed.source)
-        except Exception:
+            count = ingest_feed(feed_xml, feed.source)
+            results[feed.source] = count
+            logger.info("Ingested %d events from %s", count, feed.source)
+
+        except RateLimitError as exc:
+            logger.warning(
+                "Rate limited fetching %s (status %d), skipping",
+                feed.source,
+                exc.status_code,
+            )
             results[feed.source] = 0
+            # If rate limited, increase delay for remaining feeds
+            delay_between_feeds = min(delay_between_feeds * 2, 30.0)
+
+        except Exception as exc:
+            logger.exception("Failed to ingest %s: %s", feed.source, exc)
+            results[feed.source] = 0
+
+        # Add delay between feeds to avoid rate limiting (except after last feed)
+        if idx < len(sources_list) - 1:
+            delay = delay_between_feeds + random.random() * delay_jitter
+            time.sleep(delay)
+
     return results
 
 

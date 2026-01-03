@@ -67,8 +67,18 @@ This folder will hold the FastAPI + Celery backend.
   `python -m app.ingestion.rss_poller`
 - Poll on an interval (seconds):
   `python -m app.ingestion.rss_poller --interval 900`
+- List configured feeds:
+  `python -m app.ingestion.rss_poller --list-feeds`
 - Override with a single feed:
-  `python -m app.ingestion.rss_poller --source reuters --url https://feeds.reuters.com/reuters/topNews`
+  `python -m app.ingestion.rss_poller --source custom --url https://example.com/rss`
+
+### Default feeds
+The poller uses Google News RSS filtered for specific sources and topics:
+- **Wire services**: Reuters, AP, Bloomberg (via `allinurl:` filter)
+- **Topic feeds**: Central banks, commodities, geopolitical, inflation
+
+Rate limiting: The poller includes automatic retry with exponential backoff
+and delays between feeds to avoid rate limiting from Google News.
 
 ## Significance scoring
 - Score unscored macro events:
