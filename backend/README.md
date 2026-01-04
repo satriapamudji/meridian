@@ -182,6 +182,29 @@ The 24 transmission channels span:
 - Override the index URL:
   `python -m app.ingestion.central_banks.fed_poller --index-url https://www.federalreserve.gov/newsevents/pressreleases/2024-press-fomc.htm`
 
+## Telegram bot
+The bot provides Telegram-based access to daily digests, events, and thesis management.
+
+### Configuration
+Set in `backend/.env`:
+- `MERIDIAN_TELEGRAM_BOT_TOKEN`: Your Telegram bot token from @BotFather
+- `MERIDIAN_TELEGRAM_ALLOWED_CHAT_IDS`: Comma-separated list of allowed chat IDs (empty = allow all, for dev only)
+
+### Running the bot
+- Local development (polling mode):
+  `python -m app.integrations.telegram.bot`
+- Production (webhook mode):
+  `python -m app.integrations.telegram.bot --webhook --url https://your-domain.com --port 8443`
+- Verbose logging:
+  `python -m app.integrations.telegram.bot --verbose`
+
+### Commands
+- `/today` - Daily briefing with market context, events, metals, calendar, and theses
+- `/events` - List recent priority macro events with significance scores
+- `/thesis` - List active theses
+- `/note <thesis_id> <text>` - Add an update note to a thesis
+- `/help` - Show available commands
+
 ## Layout (planned)
 - `app/core/`: settings, logging, feature flags.
 - `app/data/`: static data definitions (watchlists, instrument metadata).

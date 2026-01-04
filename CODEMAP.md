@@ -196,7 +196,7 @@ files and roll up into these epics.
 | `task-19.md` | UI: Macro Radar (List + Filters) | 5 | 1 |
 | `task-20.md` | UI: Event Detail (Raw vs Interpretation) | 5 | 1 |
 | `task-21.md` | UI: Thesis Workspace | 5 | 1 |
-| `task-22.md` | Telegram Bot Bootstrap + Command Router | 6 | 1 |
+| `task-22.md` | Telegram Bot Bootstrap + Command Router | 6 | 1 | Complete |
 | `task-23.md` | Scheduler + Daily Jobs (Ingestion + Digest) | 6 | 1 |
 | `task-24.md` | Frontend Modernization (Tailwind + Shadcn) | 5 | 1 | ✅ Complete |
 | `task-25.md` | Metals Intelligence Dashboard UI | 5 | 1 |

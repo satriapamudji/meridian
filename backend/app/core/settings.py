@@ -22,6 +22,8 @@ class Settings:
     openrouter_app_url: str
     openrouter_app_title: str
     fred_api_key: str
+    telegram_bot_token: str
+    telegram_allowed_chat_ids: list[int]
 
 
 def _get_env(name: str, default: str) -> str:
@@ -61,6 +63,21 @@ def normalize_database_url(url: str) -> str:
     return url.replace("+psycopg", "")
 
 
+def _parse_chat_ids(value: str) -> list[int]:
+    """Parse comma-separated chat IDs into a list of integers."""
+    if not value.strip():
+        return []
+    result = []
+    for item in value.split(","):
+        item = item.strip()
+        if item:
+            try:
+                result.append(int(item))
+            except ValueError:
+                pass
+    return result
+
+
 @lru_cache
 def get_settings() -> Settings:
     _load_dotenv()
@@ -78,4 +95,8 @@ def get_settings() -> Settings:
         openrouter_app_url=_get_env("MERIDIAN_OPENROUTER_APP_URL", ""),
         openrouter_app_title=_get_env("MERIDIAN_OPENROUTER_APP_TITLE", "Meridian"),
         fred_api_key=_get_env("MERIDIAN_FRED_API_KEY", ""),
+        telegram_bot_token=_get_env("MERIDIAN_TELEGRAM_BOT_TOKEN", ""),
+        telegram_allowed_chat_ids=_parse_chat_ids(
+            _get_env("MERIDIAN_TELEGRAM_ALLOWED_CHAT_IDS", "")
+        ),
     )
