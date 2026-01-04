@@ -9,6 +9,7 @@ description = "Meridian FastAPI backend"
 requires-python = ">=3.11"
 dependencies = [
   "alembic>=1.13",
+  "apscheduler>=3.10",
   "fastapi>=0.110",
   "psycopg[binary]>=3.1",
   "python-telegram-bot>=20.0",

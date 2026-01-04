@@ -24,6 +24,14 @@ class Settings:
     fred_api_key: str
     telegram_bot_token: str
     telegram_allowed_chat_ids: list[int]
+    # Scheduler settings
+    scheduler_timezone: str
+    scheduler_rss_interval_minutes: int
+    scheduler_calendar_interval_minutes: int
+    scheduler_fed_interval_minutes: int
+    scheduler_prices_interval_minutes: int
+    scheduler_digest_hour: int
+    scheduler_digest_minute: int
 
 
 def _get_env(name: str, default: str) -> str:
@@ -99,4 +107,16 @@ def get_settings() -> Settings:
         telegram_allowed_chat_ids=_parse_chat_ids(
             _get_env("MERIDIAN_TELEGRAM_ALLOWED_CHAT_IDS", "")
         ),
+        # Scheduler settings with sensible defaults
+        scheduler_timezone=_get_env("MERIDIAN_SCHEDULER_TIMEZONE", "UTC"),
+        scheduler_rss_interval_minutes=int(_get_env("MERIDIAN_SCHEDULER_RSS_INTERVAL", "10")),
+        scheduler_calendar_interval_minutes=int(
+            _get_env("MERIDIAN_SCHEDULER_CALENDAR_INTERVAL", "360")
+        ),
+        scheduler_fed_interval_minutes=int(_get_env("MERIDIAN_SCHEDULER_FED_INTERVAL", "60")),
+        scheduler_prices_interval_minutes=int(
+            _get_env("MERIDIAN_SCHEDULER_PRICES_INTERVAL", "1440")
+        ),
+        scheduler_digest_hour=int(_get_env("MERIDIAN_SCHEDULER_DIGEST_HOUR", "6")),
+        scheduler_digest_minute=int(_get_env("MERIDIAN_SCHEDULER_DIGEST_MINUTE", "0")),
     )

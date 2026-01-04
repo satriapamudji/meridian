@@ -205,6 +205,51 @@ Set in `backend/.env`:
 - `/note <thesis_id> <text>` - Add an update note to a thesis
 - `/help` - Show available commands
 
+## Background Scheduler
+The scheduler runs all ingestion and digest jobs on configurable intervals, making Meridian "always on" without manual triggering.
+
+### Running the scheduler
+- Run with all jobs executing immediately on startup:
+  `python -m app.scheduler`
+- Run without initial job execution:
+  `python -m app.scheduler --no-initial`
+- List configured jobs and their schedules:
+  `python -m app.scheduler --list-jobs`
+
+### Scheduled Jobs
+| Job | Default Interval | Description |
+|-----|------------------|-------------|
+| RSS ingestion | Every 10 min | Poll RSS feeds for new macro events |
+| Calendar sync | Every 6 hours | Sync economic calendar from Forex Factory |
+| Fed communications | Every 60 min | Ingest FOMC statements and Fed releases |
+| Price ingestion | Daily (1440 min) | Pull daily prices for core metals |
+| Market context | Every 60 min | Fetch VIX, DXY, yields, spreads |
+| Digest generation | Daily at 06:00 | Generate daily briefing digest |
+
+### Configuration
+Set in `backend/.env`:
+- `MERIDIAN_SCHEDULER_TIMEZONE`: Timezone for cron jobs (default: UTC)
+- `MERIDIAN_SCHEDULER_RSS_INTERVAL`: Minutes between RSS polls (default: 10)
+- `MERIDIAN_SCHEDULER_CALENDAR_INTERVAL`: Minutes between calendar syncs (default: 360)
+- `MERIDIAN_SCHEDULER_FED_INTERVAL`: Minutes between Fed syncs (default: 60)
+- `MERIDIAN_SCHEDULER_PRICES_INTERVAL`: Minutes between price pulls (default: 1440)
+- `MERIDIAN_SCHEDULER_DIGEST_HOUR`: Hour to generate digest (default: 6)
+- `MERIDIAN_SCHEDULER_DIGEST_MINUTE`: Minute to generate digest (default: 0)
+
+### Observability
+All jobs log their start, completion, and any errors:
+```
+INFO:app.scheduler.jobs:Starting RSS ingestion job
+INFO:app.scheduler.jobs:RSS ingestion complete: total=15 events
+```
+
+### Idempotency
+All jobs are idempotent - safe to re-run without creating duplicates:
+- RSS uses upsert on (source, external_id)
+- Calendar uses upsert on (event_name, event_date, region)
+- Prices use upsert on (symbol, price_date)
+- Digest uses upsert on (digest_date)
+
 ## Layout (planned)
 - `app/core/`: settings, logging, feature flags.
 - `app/data/`: static data definitions (watchlists, instrument metadata).
@@ -214,7 +259,7 @@ Set in `backend/.env`:
 - `app/analysis/`: scoring, synthesis, transmission, prompts, market context.
 - `app/services/`: higher-level workflows (digests, exports).
 - `app/integrations/`: LLM providers, Telegram, external APIs.
-- `app/workers/`: Celery tasks + schedules.
+- `app/scheduler/`: APScheduler jobs and background scheduling.
 - `app/tests/`: unit and integration tests.
 
 ## Conventions

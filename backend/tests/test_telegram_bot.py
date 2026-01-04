@@ -65,7 +65,7 @@ def test_format_events_list_with_events() -> None:
         },
     ]
     result = format_events_list(events)
-    assert "Priority Events (2)" in result
+    assert "PRIORITY EVENTS (2)" in result
     assert "[P] Fed signals rate cuts (72/100)" in result
     assert "- Oil prices surge (65/100)" in result
 
@@ -97,9 +97,9 @@ def test_format_theses_list_with_theses() -> None:
         },
     ]
     result = format_theses_list(theses)
-    assert "Active Theses" in result
-    assert "`12345678` Silver breakout thesis (watching) [SLV]" in result
-    assert "`abcdefab` Gold accumulation (active) [metal]" in result
+    assert "ACTIVE THESES" in result
+    assert "12345678: Silver breakout thesis (watching) [SLV]" in result
+    assert "abcdefab: Gold accumulation (active) [metal]" in result
 
 
 def test_format_theses_list_empty() -> None:
@@ -112,7 +112,7 @@ def test_format_note_confirmation() -> None:
         "12345678-1234-1234-1234-123456789abc",
         "Breaking above resistance",
     )
-    assert "`12345678`" in result
+    assert "12345678" in result
     assert "Breaking above resistance" in result
 
 
@@ -168,7 +168,7 @@ def test_handle_events_returns_formatted_list(mock_repo_class: MagicMock) -> Non
     mock_repo_class.return_value = mock_repo
 
     result = handle_events()
-    assert "Priority Events" in result
+    assert "PRIORITY EVENTS" in result
     assert "Fed rate decision" in result
 
 
@@ -190,7 +190,7 @@ def test_handle_thesis_list_returns_formatted_list(mock_list: MagicMock) -> None
     mock_list.return_value = [mock_thesis]
 
     result = handle_thesis_list()
-    assert "Active Theses" in result
+    assert "ACTIVE THESES" in result
     assert "Silver mean reversion" in result
 
 

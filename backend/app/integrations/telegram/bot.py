@@ -104,7 +104,7 @@ class TelegramBot:
             return
 
         response = handle_help()
-        await update.message.reply_text(response, parse_mode="Markdown")  # type: ignore[union-attr]
+        await update.message.reply_text(response)  # type: ignore[union-attr]
 
     def build_application(self) -> Any:
         """Build the Telegram application with all handlers."""

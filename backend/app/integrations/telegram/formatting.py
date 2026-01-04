@@ -1,6 +1,7 @@
 """Telegram message formatting utilities.
 
-Handles escaping for MarkdownV2 and plain text message rendering.
+Uses plain text rendering to avoid Markdown escaping complexity.
+The escape_markdown_v2 function is available for future use if needed.
 """
 
 from __future__ import annotations
@@ -35,7 +36,7 @@ def format_events_list(events: list[dict[str, Any]]) -> str:
     if not events:
         return "No priority events found."
 
-    lines = [f"*Priority Events ({len(events)})*\n"]
+    lines = [f"PRIORITY EVENTS ({len(events)})", ""]
     for event in events:
         headline = str(event.get("headline") or "untitled event")
         score = event.get("significance_score") or event.get("score")
@@ -52,14 +53,14 @@ def format_theses_list(theses: list[dict[str, Any]]) -> str:
     if not theses:
         return "No active theses found."
 
-    lines = ["*Active Theses*\n"]
+    lines = ["ACTIVE THESES", ""]
     for thesis in theses:
         thesis_id = str(thesis.get("id", ""))[:8]
         title = str(thesis.get("title") or "untitled")
         status = thesis.get("status") or "unknown"
         asset = thesis.get("asset_symbol") or thesis.get("asset_type") or ""
         suffix = f" [{asset}]" if asset else ""
-        lines.append(f"- `{thesis_id}` {title} ({status}){suffix}")
+        lines.append(f"- {thesis_id}: {title} ({status}){suffix}")
 
     return "\n".join(lines)
 
@@ -68,12 +69,12 @@ def format_note_confirmation(thesis_id: str, note: str) -> str:
     """Format confirmation message after adding a note."""
     short_id = thesis_id[:8]
     note_preview = note[:50] + "..." if len(note) > 50 else note
-    return f'Note added to thesis `{short_id}`:\n"{note_preview}"'
+    return f'Note added to thesis {short_id}:\n"{note_preview}"'
 
 
 def format_help_message() -> str:
     """Format the help message showing available commands."""
-    return """*Meridian Bot Commands*
+    return """MERIDIAN BOT COMMANDS
 
 /today - Daily briefing with market context, events, metals, calendar, and theses
 /events - List recent priority macro events with significance scores
@@ -81,6 +82,6 @@ def format_help_message() -> str:
 /note <thesis_id> <text> - Add an update note to a thesis
 /help - Show this help message
 
-*Examples*
-`/note abc12345 Gold breaking above resistance, thesis on track`
+EXAMPLES
+/note abc12345 Gold breaking above resistance, thesis on track
 """
