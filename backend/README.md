@@ -34,6 +34,43 @@ This folder will hold the FastAPI + Celery backend.
 ## Daily digest API
 - `GET /digest/today`
 
+## Dashboard API (Market Context)
+The dashboard provides a real-time view of market conditions for position sizing decisions.
+
+- `GET /dashboard`: Returns the latest market context with regime classifications
+- `GET /dashboard/today`: Returns today's context; warns if stale
+- `POST /dashboard/refresh`: Triggers fresh ingestion of market data
+- `GET /dashboard/instruments`: Returns all watched instruments with metadata
+- `GET /dashboard/ratios`: Returns calculated ratio definitions
+
+### Regime Classifications
+The dashboard classifies markets into four regimes:
+- **Volatility**: calm, normal, elevated, fear, crisis (based on VIX)
+- **Dollar**: weak, neutral, strong (based on DXY)
+- **Curve**: steep, normal, flat, inverted (based on 2s10s spread)
+- **Credit**: tight, normal, wide, stressed, crisis (based on HY spread)
+
+### Position Sizing
+The `suggested_size_multiplier` (0.25-1.0) indicates recommended position size
+based on current volatility and credit conditions. Use this to scale positions
+during elevated risk periods.
+
+## Market context ingestion
+- Run once to snapshot current market conditions:
+  `python -m app.ingestion.market_context_poller`
+- Poll on an interval (seconds):
+  `python -m app.ingestion.market_context_poller --interval 3600`
+- Preview without DB writes:
+  `python -m app.ingestion.market_context_poller --dry-run`
+- Verbose output:
+  `python -m app.ingestion.market_context_poller --verbose`
+
+The poller fetches from two sources:
+- **Yahoo Finance**: 21 symbols including VIX, DXY, SPX, Gold, Oil, BTC, and more
+- **FRED API**: 7 series including Treasury yields, breakevens, and HY spreads
+
+Requires `MERIDIAN_FRED_API_KEY` in `backend/.env` for FRED data.
+
 ## Migrations
 - Apply schema: `alembic upgrade head`
 - The initial migration sets the `vector(1536)` embedding dimension. If you
@@ -97,6 +134,23 @@ and delays between feeds to avoid rate limiting from Google News.
   `python -m app.analysis.macro_event_analysis --overwrite`
 - Analyze a specific event by id:
   `python -m app.analysis.macro_event_analysis --event-id <uuid>`
+- Enable dynamic asset discovery via transmission channels:
+  `python -m app.analysis.macro_event_analysis --with-discovery`
+
+### Dynamic Asset Discovery
+When `--with-discovery` is enabled, the analyzer:
+1. Matches the event to transmission channels (oil supply, Fed policy, etc.)
+2. Extracts primary and secondary assets from matched channels
+3. Injects discovered assets into the LLM prompt
+4. Requests asset-specific trading opportunities in the response
+
+The 24 transmission channels span:
+- **Commodity Supply**: Oil, gas, metals, agricultural disruptions
+- **Currency/FX**: Dollar strength/weakness, EM stress, carry trades
+- **Rates/Liquidity**: Fed policy, yield curve, credit conditions
+- **Risk Sentiment**: Risk-off/on moves, VIX spikes
+- **Sanctions/Controls**: Trade wars, capital controls, export bans
+- **Inflation**: CPI spikes, deflation, wage pressures
 
 ## Economic calendar ingestion
 - Sync upcoming events from JSON fixtures:
@@ -130,10 +184,11 @@ and delays between feeds to avoid rate limiting from Google News.
 
 ## Layout (planned)
 - `app/core/`: settings, logging, feature flags.
+- `app/data/`: static data definitions (watchlists, instrument metadata).
 - `app/db/`: schema, migrations, models, repositories.
-- `app/api/`: HTTP routes (events, theses, metals, crypto, digests).
+- `app/api/`: HTTP routes (events, theses, metals, crypto, digests, dashboard).
 - `app/ingestion/`: external sources -> normalized records.
-- `app/analysis/`: scoring, synthesis, transmission, prompts.
+- `app/analysis/`: scoring, synthesis, transmission, prompts, market context.
 - `app/services/`: higher-level workflows (digests, exports).
 - `app/integrations/`: LLM providers, Telegram, external APIs.
 - `app/workers/`: Celery tasks + schedules.

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from decimal import Decimal
 from pathlib import Path
 
@@ -7,11 +8,14 @@ import json
 
 from app.ingestion.economic_calendar import (
     build_fred_events,
+    filter_events,
+    FRED_RELEASE_MAPPINGS,
     load_calendar_entries,
+    parse_forex_factory_payload,
     parse_fred_release_dates,
     parse_fred_release_list,
-    parse_forex_factory_payload,
     parse_numeric_value,
+    EconomicCalendarEvent,
 )
 
 
@@ -63,3 +67,99 @@ def test_parse_fred_payload_fixture() -> None:
     names = {event.event_name for event in events}
     assert "Consumer Price Index" in names
     assert "Employment Situation" in names
+
+
+def test_fred_release_mappings_have_required_fields() -> None:
+    """Verify FRED release mappings have proper structure."""
+    assert len(FRED_RELEASE_MAPPINGS) > 0
+
+    for release_id, (name, impact, region) in FRED_RELEASE_MAPPINGS.items():
+        assert isinstance(release_id, int)
+        assert isinstance(name, str) and len(name) > 0
+        assert impact in ("high", "medium", "low")
+        assert isinstance(region, str) and len(region) > 0
+
+
+def test_fred_release_mappings_include_high_impact() -> None:
+    """Verify key high-impact releases are configured."""
+    # CPI
+    assert 10 in FRED_RELEASE_MAPPINGS
+    assert FRED_RELEASE_MAPPINGS[10][1] == "high"
+
+    # NFP
+    assert 50 in FRED_RELEASE_MAPPINGS
+    assert FRED_RELEASE_MAPPINGS[50][1] == "high"
+
+    # GDP
+    assert 53 in FRED_RELEASE_MAPPINGS
+    assert FRED_RELEASE_MAPPINGS[53][1] == "high"
+
+
+def test_filter_events_excludes_past_events() -> None:
+    """Verify filter_events can exclude events before start date."""
+    now = datetime(2026, 1, 15, 12, 0, 0, tzinfo=timezone.utc)
+    past_event = EconomicCalendarEvent(
+        event_name="Past Event",
+        event_date=datetime(2026, 1, 10, 12, 0, 0, tzinfo=timezone.utc),
+        region="USD",
+        impact_level="high",
+        expected_value=None,
+        actual_value=None,
+        previous_value=None,
+        surprise_direction=None,
+        surprise_magnitude=None,
+    )
+    future_event = EconomicCalendarEvent(
+        event_name="Future Event",
+        event_date=datetime(2026, 1, 20, 12, 0, 0, tzinfo=timezone.utc),
+        region="USD",
+        impact_level="high",
+        expected_value=None,
+        actual_value=None,
+        previous_value=None,
+        surprise_direction=None,
+        surprise_magnitude=None,
+    )
+
+    events = [past_event, future_event]
+    end = datetime(2026, 1, 31, 23, 59, 59, tzinfo=timezone.utc)
+
+    # Filter from now onwards - should only include future event
+    filtered = filter_events(events, now, end)
+    assert len(filtered) == 1
+    assert filtered[0].event_name == "Future Event"
+
+
+def test_filter_events_includes_events_in_range() -> None:
+    """Verify filter_events includes events within the date range."""
+    start = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    end = datetime(2026, 1, 31, 23, 59, 59, tzinfo=timezone.utc)
+
+    event_in_range = EconomicCalendarEvent(
+        event_name="In Range",
+        event_date=datetime(2026, 1, 15, 12, 0, 0, tzinfo=timezone.utc),
+        region="USD",
+        impact_level="high",
+        expected_value=None,
+        actual_value=None,
+        previous_value=None,
+        surprise_direction=None,
+        surprise_magnitude=None,
+    )
+    event_after_range = EconomicCalendarEvent(
+        event_name="After Range",
+        event_date=datetime(2026, 2, 15, 12, 0, 0, tzinfo=timezone.utc),
+        region="USD",
+        impact_level="high",
+        expected_value=None,
+        actual_value=None,
+        previous_value=None,
+        surprise_direction=None,
+        surprise_magnitude=None,
+    )
+
+    events = [event_in_range, event_after_range]
+    filtered = filter_events(events, start, end)
+
+    assert len(filtered) == 1
+    assert filtered[0].event_name == "In Range"

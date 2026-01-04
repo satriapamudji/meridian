@@ -45,6 +45,10 @@ class HistoricalCaseEntry:
     lessons: list[str]
     counter_examples: list[str]
     embedding: list[float] | None
+    # New optional fields for quantitative analysis
+    quantitative_impacts: dict[str, Any] | None = None
+    time_horizon_behavior: dict[str, Any] | None = None
+    transmission_channels: list[str] | None = None
 
 
 def load_case_entries(data_dir: Path) -> list[HistoricalCaseEntry]:
@@ -77,9 +81,7 @@ def _validate_payload(payload: dict[str, Any], path: Path) -> HistoricalCaseEntr
 
     structural_drivers = _require_str_list(payload, "structural_drivers", path)
     metal_impacts = _require_dict(payload, "metal_impacts", path)
-    traditional_market_reaction = _require_str_list(
-        payload, "traditional_market_reaction", path
-    )
+    traditional_market_reaction = _require_str_list(payload, "traditional_market_reaction", path)
     crypto_reaction = _require_str_list(payload, "crypto_reaction", path, allow_empty=True)
     crypto_transmission = _require_dict(payload, "crypto_transmission", path)
     time_delays = _require_str_list(payload, "time_delays", path)
@@ -95,6 +97,22 @@ def _validate_payload(payload: dict[str, Any], path: Path) -> HistoricalCaseEntr
             raise ValueError(f"{path}: embedding must be a list of floats")
         format_embedding(embedding)
 
+    # Parse optional quantitative fields
+    quantitative_impacts = payload.get("quantitative_impacts")
+    if quantitative_impacts is not None and not isinstance(quantitative_impacts, dict):
+        raise ValueError(f"{path}: quantitative_impacts must be an object when provided")
+
+    time_horizon_behavior = payload.get("time_horizon_behavior")
+    if time_horizon_behavior is not None and not isinstance(time_horizon_behavior, dict):
+        raise ValueError(f"{path}: time_horizon_behavior must be an object when provided")
+
+    transmission_channels = payload.get("transmission_channels")
+    if transmission_channels is not None:
+        if not isinstance(transmission_channels, list) or not all(
+            isinstance(x, str) for x in transmission_channels
+        ):
+            raise ValueError(f"{path}: transmission_channels must be a list of strings")
+
     return HistoricalCaseEntry(
         event_name=event_name,
         date_range=date_range,
@@ -109,6 +127,9 @@ def _validate_payload(payload: dict[str, Any], path: Path) -> HistoricalCaseEntr
         lessons=lessons,
         counter_examples=counter_examples,
         embedding=embedding,
+        quantitative_impacts=quantitative_impacts,
+        time_horizon_behavior=time_horizon_behavior,
+        transmission_channels=transmission_channels,
     )
 
 
@@ -160,9 +181,7 @@ def _validate_metal_impacts(metal_impacts: dict[str, Any], path: Path) -> None:
         for key in ("direction", "magnitude", "driver"):
             value = entry.get(key)
             if not isinstance(value, str) or not value.strip():
-                raise ValueError(
-                    f"{path}: metal_impacts.{metal}.{key} must be a non-empty string"
-                )
+                raise ValueError(f"{path}: metal_impacts.{metal}.{key} must be a non-empty string")
 
 
 def _validate_crypto_transmission(crypto_transmission: dict[str, Any], path: Path) -> None:
@@ -197,7 +216,10 @@ def seed_cases(data_dir: Path) -> int:
             time_delays,
             lessons,
             counter_examples,
-            embedding
+            embedding,
+            quantitative_impacts,
+            time_horizon_behavior,
+            transmission_channels
         )
         VALUES (
             gen_random_uuid(),
@@ -213,7 +235,10 @@ def seed_cases(data_dir: Path) -> int:
             %(time_delays)s,
             %(lessons)s,
             %(counter_examples)s,
-            %(embedding)s
+            %(embedding)s,
+            %(quantitative_impacts)s,
+            %(time_horizon_behavior)s,
+            %(transmission_channels)s
         )
         ON CONFLICT (event_name, date_range)
         DO UPDATE SET
@@ -227,7 +252,10 @@ def seed_cases(data_dir: Path) -> int:
             time_delays = EXCLUDED.time_delays,
             lessons = EXCLUDED.lessons,
             counter_examples = EXCLUDED.counter_examples,
-            embedding = COALESCE(EXCLUDED.embedding, historical_cases.embedding)
+            embedding = COALESCE(EXCLUDED.embedding, historical_cases.embedding),
+            quantitative_impacts = COALESCE(EXCLUDED.quantitative_impacts, historical_cases.quantitative_impacts),
+            time_horizon_behavior = COALESCE(EXCLUDED.time_horizon_behavior, historical_cases.time_horizon_behavior),
+            transmission_channels = COALESCE(EXCLUDED.transmission_channels, historical_cases.transmission_channels)
     """
 
     with psycopg.connect(database_url) as conn:
@@ -235,6 +263,14 @@ def seed_cases(data_dir: Path) -> int:
             embedding_value = None
             if entry.embedding is not None:
                 embedding_value = format_embedding(entry.embedding)
+
+            quantitative_impacts_value = None
+            if entry.quantitative_impacts is not None:
+                quantitative_impacts_value = Json(entry.quantitative_impacts)
+
+            time_horizon_behavior_value = None
+            if entry.time_horizon_behavior is not None:
+                time_horizon_behavior_value = Json(entry.time_horizon_behavior)
 
             conn.execute(
                 query,
@@ -252,6 +288,9 @@ def seed_cases(data_dir: Path) -> int:
                     "lessons": entry.lessons,
                     "counter_examples": entry.counter_examples,
                     "embedding": embedding_value,
+                    "quantitative_impacts": quantitative_impacts_value,
+                    "time_horizon_behavior": time_horizon_behavior_value,
+                    "transmission_channels": entry.transmission_channels,
                 },
             )
 

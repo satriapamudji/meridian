@@ -11,12 +11,18 @@ import psycopg
 from psycopg.types.json import Json
 
 from app.analysis.transmission import evaluate_transmission, normalize_crypto_transmission
+from app.analysis.asset_discovery import (
+    discover_assets_for_event,
+    format_discovery_for_prompt,
+    DiscoveryResult,
+)
 from app.core.settings import get_settings, normalize_database_url
 
 METAL_KEYS = ("gold", "silver", "copper")
 
 _PROMPT_TEMPLATE = """You are a macro analyst. Produce JSON only.
 
+{market_context_section}{discovered_assets_section}
 Return a JSON object with these keys:
 - raw_facts: list of short, literal facts drawn only from EVENT_JSON. No interpretation.
 - metal_impacts: object keyed by gold/silver/copper with direction, magnitude, driver.
@@ -25,9 +31,15 @@ Return a JSON object with these keys:
 - crypto_transmission: object with exists (bool), path (string),
   strength (strong/moderate/weak/none), relevant_assets (list).
 - thesis_seed: short thesis seed (optional).
+- asset_opportunities: list of objects with ticker, direction, conviction (high/medium/low),
+  rationale. Focus on DISCOVERED_ASSETS if provided. (optional)
 
 If data is missing, say "insufficient data". Do not include extra keys.
 Avoid signal-bot tone; keep language thesis-supportive.
+Consider the MARKET_CONTEXT when assessing direction and magnitude of impacts.
+High VIX or stressed credit conditions amplify flight-to-safety moves.
+When DISCOVERED_ASSETS are provided, analyze their relevance to the event and
+identify specific trading opportunities based on transmission channels.
 
 EVENT_JSON:
 {event_json}
@@ -71,6 +83,10 @@ class HistoricalCaseSummary:
     crypto_transmission: dict[str, Any] | None
     lessons: list[str] | None
     counter_examples: list[str] | None
+    # New fields for quantitative analysis
+    quantitative_impacts: dict[str, Any] | None = None
+    time_horizon_behavior: dict[str, Any] | None = None
+    transmission_channels: list[str] | None = None
 
 
 @dataclass(frozen=True)
@@ -78,6 +94,8 @@ class AnalysisRequest:
     event: MacroEventRecord
     metals_knowledge: list[MetalsKnowledgeEntry]
     historical_cases: list[HistoricalCaseSummary]
+    market_context: str | None = None  # Pre-formatted context string
+    discovered_assets: str | None = None  # Pre-formatted discovered assets section
 
 
 @dataclass(frozen=True)
@@ -88,11 +106,12 @@ class MacroEventAnalysis:
     counter_case: str
     crypto_transmission: dict[str, Any]
     thesis_seed: str | None
+    asset_opportunities: list[dict[str, Any]] | None = None  # New: from discovery
+    discovery_result: DiscoveryResult | None = None  # New: raw discovery data
 
 
 class LlmProvider(Protocol):
-    def complete(self, prompt: str) -> str:
-        ...
+    def complete(self, prompt: str) -> str: ...
 
 
 class LocalHeuristicProvider:
@@ -217,14 +236,32 @@ def build_prompt(request: AnalysisRequest) -> str:
         }
         for case in request.historical_cases
     ]
+
+    # Build market context section
+    if request.market_context:
+        market_context_section = f"MARKET_CONTEXT:\n{request.market_context}\n\n"
+    else:
+        market_context_section = ""
+
+    # Build discovered assets section
+    if request.discovered_assets:
+        discovered_assets_section = f"{request.discovered_assets}\n\n"
+    else:
+        discovered_assets_section = ""
+
     return _PROMPT_TEMPLATE.format(
+        market_context_section=market_context_section,
+        discovered_assets_section=discovered_assets_section,
         event_json=json.dumps(event_payload, indent=2, sort_keys=True),
         metals_json=json.dumps(metals_payload, indent=2, sort_keys=True),
         cases_json=json.dumps(cases_payload, indent=2, sort_keys=True),
     )
 
 
-def parse_analysis_response(response: str) -> MacroEventAnalysis:
+def parse_analysis_response(
+    response: str,
+    discovery_result: DiscoveryResult | None = None,
+) -> MacroEventAnalysis:
     payload = _parse_json_payload(response)
     raw_facts = _normalize_raw_facts(_require_list(payload, "raw_facts"))
     metal_impacts = _normalize_metal_impacts(_require_dict(payload, "metal_impacts"))
@@ -239,6 +276,25 @@ def parse_analysis_response(response: str) -> MacroEventAnalysis:
     if thesis_seed is not None and not isinstance(thesis_seed, str):
         raise ValueError("thesis_seed must be a string when provided")
 
+    # Parse optional asset_opportunities
+    asset_opportunities: list[dict[str, Any]] | None = None
+    raw_opportunities = payload.get("asset_opportunities")
+    if raw_opportunities is not None:
+        if not isinstance(raw_opportunities, list):
+            raise ValueError("asset_opportunities must be a list when provided")
+        asset_opportunities = []
+        for opp in raw_opportunities:
+            if not isinstance(opp, dict):
+                continue
+            asset_opportunities.append(
+                {
+                    "ticker": str(opp.get("ticker", "")),
+                    "direction": str(opp.get("direction", "unknown")),
+                    "conviction": str(opp.get("conviction", "medium")),
+                    "rationale": str(opp.get("rationale", "")),
+                }
+            )
+
     return MacroEventAnalysis(
         raw_facts=raw_facts,
         metal_impacts=metal_impacts,
@@ -246,6 +302,8 @@ def parse_analysis_response(response: str) -> MacroEventAnalysis:
         counter_case=counter_case,
         crypto_transmission=crypto_transmission,
         thesis_seed=thesis_seed,
+        asset_opportunities=asset_opportunities,
+        discovery_result=discovery_result,
     )
 
 
@@ -255,6 +313,82 @@ def analyze_event(
     prompt = build_prompt(request)
     response = provider.complete(prompt)
     analysis = parse_analysis_response(response)
+    return analysis, prompt if return_prompt else None
+
+
+def analyze_with_dynamic_discovery(
+    provider: LlmProvider,
+    event: MacroEventRecord,
+    metals_knowledge: list[MetalsKnowledgeEntry],
+    historical_cases: list[HistoricalCaseSummary],
+    *,
+    include_market_context: bool = True,
+    max_channels: int = 5,
+    return_prompt: bool = False,
+) -> tuple[MacroEventAnalysis, str | None]:
+    """
+    Analyze an event with dynamic asset discovery.
+
+    This extends the standard analysis by:
+    1. Discovering relevant assets based on transmission channels
+    2. Injecting discovered assets into the LLM prompt
+    3. Requesting asset-specific trading opportunities in the response
+
+    Args:
+        provider: LLM provider for analysis
+        event: The macro event to analyze
+        metals_knowledge: Metals knowledge base entries
+        historical_cases: Historical case summaries for context
+        include_market_context: Whether to include market context
+        max_channels: Maximum transmission channels to match
+        return_prompt: Whether to return the rendered prompt
+
+    Returns:
+        Tuple of (MacroEventAnalysis with discovery data, prompt if requested)
+    """
+    # Step 1: Discover assets via transmission channels
+    discovery = discover_assets_for_event(
+        headline=event.headline,
+        event_type=event.event_type,
+        full_text=event.full_text,
+        max_channels=max_channels,
+        include_secondary=True,
+    )
+
+    # Step 2: Format discovered assets for prompt injection
+    discovered_assets_str: str | None = None
+    if discovery.channels:  # Only inject if channels were matched
+        discovered_assets_str = format_discovery_for_prompt(discovery)
+
+    # Step 3: Fetch market context if requested
+    market_context_str: str | None = None
+    if include_market_context:
+        try:
+            from app.analysis.market_context import (
+                fetch_latest_market_context,
+                format_context_for_llm,
+            )
+
+            record = fetch_latest_market_context()
+            if record:
+                market_context_str = format_context_for_llm(record)
+        except Exception:
+            # Market context is optional - continue without it
+            pass
+
+    # Step 4: Build request and analyze
+    request = AnalysisRequest(
+        event=event,
+        metals_knowledge=metals_knowledge,
+        historical_cases=historical_cases,
+        market_context=market_context_str,
+        discovered_assets=discovered_assets_str,
+    )
+
+    prompt = build_prompt(request)
+    response = provider.complete(prompt)
+    analysis = parse_analysis_response(response, discovery_result=discovery)
+
     return analysis, prompt if return_prompt else None
 
 
@@ -354,9 +488,7 @@ def fetch_metals_knowledge() -> list[MetalsKnowledgeEntry]:
     """
     with psycopg.connect(database_url) as conn:
         rows = conn.execute(query).fetchall()
-    return [
-        MetalsKnowledgeEntry(metal=row[0], category=row[1], content=row[2]) for row in rows
-    ]
+    return [MetalsKnowledgeEntry(metal=row[0], category=row[1], content=row[2]) for row in rows]
 
 
 def fetch_historical_cases(
@@ -375,7 +507,10 @@ def fetch_historical_cases(
                metal_impacts,
                crypto_transmission,
                lessons,
-               counter_examples
+               counter_examples,
+               quantitative_impacts,
+               time_horizon_behavior,
+               transmission_channels
         FROM historical_cases
     """
     params: dict[str, object] = {"limit": limit}
@@ -396,6 +531,9 @@ def fetch_historical_cases(
             crypto_transmission=row[6],
             lessons=row[7],
             counter_examples=row[8],
+            quantitative_impacts=row[9],
+            time_horizon_behavior=row[10],
+            transmission_channels=row[11],
         )
         for row in rows
     ]
@@ -547,9 +685,7 @@ def _post_json(
             body = response.read().decode("utf-8", errors="ignore")
     except urllib.error.HTTPError as exc:
         body = exc.read().decode("utf-8", errors="ignore")
-        raise RuntimeError(
-            f"OpenRouter request failed: {exc.code} {exc.reason}. {body}"
-        ) from exc
+        raise RuntimeError(f"OpenRouter request failed: {exc.code} {exc.reason}. {body}") from exc
     if not body:
         raise RuntimeError("OpenRouter response was empty")
     return json.loads(body)
@@ -583,17 +719,52 @@ def run_analysis(
     overwrite: bool = False,
     dry_run: bool = False,
     print_prompts: bool = False,
+    include_market_context: bool = True,
+    with_discovery: bool = False,
 ) -> dict[str, int]:
     metals_knowledge = fetch_metals_knowledge()
-    summary = {"analyzed": 0, "skipped": 0}
+    summary = {"analyzed": 0, "skipped": 0, "discoveries": 0}
+
+    # Fetch market context once for all events (only if not using discovery mode)
+    # Discovery mode fetches context per-event
+    market_context_str: str | None = None
+    if include_market_context and not with_discovery:
+        try:
+            from app.analysis.market_context import (
+                fetch_latest_market_context,
+                format_context_for_llm,
+            )
+
+            record = fetch_latest_market_context()
+            if record:
+                market_context_str = format_context_for_llm(record)
+        except Exception:
+            # Market context is optional - continue without it
+            pass
 
     for event in events:
         cases = fetch_historical_cases(event.event_type)
-        analysis, prompt = analyze_event(
-            provider,
-            AnalysisRequest(event, metals_knowledge, cases),
-            return_prompt=print_prompts,
-        )
+
+        if with_discovery:
+            # Use dynamic discovery mode
+            analysis, prompt = analyze_with_dynamic_discovery(
+                provider,
+                event,
+                metals_knowledge,
+                cases,
+                include_market_context=include_market_context,
+                return_prompt=print_prompts,
+            )
+            if analysis.discovery_result and analysis.discovery_result.channels:
+                summary["discoveries"] += 1
+        else:
+            # Standard analysis mode
+            analysis, prompt = analyze_event(
+                provider,
+                AnalysisRequest(event, metals_knowledge, cases, market_context_str),
+                return_prompt=print_prompts,
+            )
+
         if print_prompts and prompt:
             print(prompt)
 
@@ -642,6 +813,11 @@ def main() -> None:
         action="store_true",
         help="Print rendered prompts for debugging",
     )
+    parser.add_argument(
+        "--with-discovery",
+        action="store_true",
+        help="Enable dynamic asset discovery via transmission channels",
+    )
     args = parser.parse_args()
 
     try:
@@ -657,9 +833,7 @@ def main() -> None:
             return
         events = [event]
     else:
-        events = fetch_priority_events(
-            limit=args.limit, include_analyzed=args.overwrite
-        )
+        events = fetch_priority_events(limit=args.limit, include_analyzed=args.overwrite)
         if not events:
             print("No priority macro events found for analysis.")
             return
@@ -670,8 +844,12 @@ def main() -> None:
         overwrite=args.overwrite,
         dry_run=args.dry_run,
         print_prompts=args.print_prompts,
+        with_discovery=args.with_discovery,
     )
-    print(f"Analyzed {summary['analyzed']} events (skipped {summary['skipped']}).")
+    result_msg = f"Analyzed {summary['analyzed']} events (skipped {summary['skipped']})"
+    if args.with_discovery:
+        result_msg += f", {summary.get('discoveries', 0)} with asset discoveries"
+    print(result_msg + ".")
 
 
 if __name__ == "__main__":

@@ -16,15 +16,15 @@ DEFAULT_FEEDS = [
     # Wire services via Google News (last 24h filter)
     FeedConfig(
         "reuters",
-        "https://news.google.com/rss/search?q=when:24h+allinurl:reuters.com&ceid=US:en&hl=en-US&gl=US",
+        "https://news.google.com/rss/search?q=when:24h+site:reuters.com&ceid=US:en&hl=en-US&gl=US",
     ),
     FeedConfig(
         "ap",
-        "https://news.google.com/rss/search?q=when:24h+allinurl:apnews.com&ceid=US:en&hl=en-US&gl=US",
+        "https://news.google.com/rss/search?q=when:24h+site:apnews.com&ceid=US:en&hl=en-US&gl=US",
     ),
     FeedConfig(
         "bloomberg",
-        "https://news.google.com/rss/search?q=when:24h+allinurl:bloomberg.com&ceid=US:en&hl=en-US&gl=US",
+        "https://news.google.com/rss/search?q=when:24h+site:bloomberg.com&ceid=US:en&hl=en-US&gl=US",
     ),
     # Macro-focused topic feeds for comprehensive coverage
     FeedConfig(

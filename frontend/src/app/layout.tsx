@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Fraunces, Space_Grotesk } from "next/font/google";
 
 import "@/styles/globals.css";
-import Link from "next/link";
+import { AppShell } from "@/components/layout/app-shell";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -19,12 +19,6 @@ export const metadata: Metadata = {
   description: "Macro intelligence dashboard",
 };
 
-const navItems = [
-  { label: "Macro Radar", href: "/macro-radar" },
-  { label: "Metals", href: "/metals" },
-  { label: "Theses", href: "/theses" },
-];
-
 export default function RootLayout({
   children,
 }: {
@@ -32,22 +26,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${spaceGrotesk.variable} ${fraunces.variable}`}>
-        <div className="shell">
-          <header className="topbar">
-            <Link className="brand" href="/">
-              Meridian
-            </Link>
-            <nav className="nav">
-              {navItems.map((item) => (
-                <Link key={item.href} href={item.href}>
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-          </header>
-          <main>{children}</main>
-        </div>
+      <body className={`${spaceGrotesk.variable} ${fraunces.variable} font-sans antialiased`}>
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );

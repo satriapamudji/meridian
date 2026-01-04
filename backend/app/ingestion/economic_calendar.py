@@ -24,7 +24,26 @@ DEFAULT_FRED_BASE_URL = "https://api.stlouisfed.org/fred"
 FRED_IMPACT_LEVEL = "medium"
 FRED_RELEASES_LIMIT = 50
 FRED_RELEASE_DATES_LIMIT = 5
-FRED_REQUEST_TIMEOUT = 10
+FRED_REQUEST_TIMEOUT = 30
+
+# FRED Release ID mappings for key economic indicators
+# Format: release_id -> (event_name, impact_level, region)
+FRED_RELEASE_MAPPINGS: dict[int, tuple[str, str, str]] = {
+    # High impact releases
+    10: ("Consumer Price Index (CPI)", "high", "USD"),
+    50: ("Employment Situation (NFP)", "high", "USD"),
+    53: ("Gross Domestic Product (GDP)", "high", "USD"),
+    54: ("Personal Income and Outlays (PCE)", "high", "USD"),
+    101: ("FOMC Press Release", "high", "USD"),
+    # Medium impact releases
+    9: ("Retail Sales", "medium", "USD"),
+    13: ("Industrial Production", "medium", "USD"),
+    46: ("Producer Price Index (PPI)", "medium", "USD"),
+    11: ("Unemployment Insurance Weekly Claims", "medium", "USD"),
+}
+
+# Default list of release IDs to fetch
+DEFAULT_FRED_RELEASE_IDS = list(FRED_RELEASE_MAPPINGS.keys())
 
 
 @dataclass(frozen=True)
@@ -66,6 +85,7 @@ class ForexFactoryAdapter(CalendarAdapter):
     url: str = DEFAULT_FOREX_FACTORY_URL
     data_file: Path | None = None
     name: str = "forex_factory"
+    future_only: bool = True
 
     def fetch_events(self, start: datetime, end: datetime) -> list[EconomicCalendarEvent]:
         if self.data_file is not None:
@@ -73,6 +93,20 @@ class ForexFactoryAdapter(CalendarAdapter):
         else:
             payload = fetch_forex_factory_payload(self.url)
         events = parse_forex_factory_payload(payload)
+
+        # Filter to future events only if enabled
+        if self.future_only and self.data_file is None:
+            now = datetime.now(timezone.utc)
+            future_events = [e for e in events if e.event_date >= now]
+
+            if events and not future_events:
+                logger.warning(
+                    "Forex Factory feed appears stale - all %d events are in the past. "
+                    "Feed may not have updated yet for the new week.",
+                    len(events),
+                )
+            events = future_events
+
         return filter_events(events, start, end)
 
 
@@ -82,37 +116,33 @@ class FredCalendarAdapter(CalendarAdapter):
     base_url: str = DEFAULT_FRED_BASE_URL
     data_file: Path | None = None
     name: str = "fred"
+    release_ids: tuple[int, ...] | None = None
 
     def fetch_events(self, start: datetime, end: datetime) -> list[EconomicCalendarEvent]:
         if self.data_file is not None:
             payload = _load_json(self.data_file)
-            events = parse_fred_fixture_payload(payload)
-            return filter_events(events, start, end)
+            fixture_events = parse_fred_fixture_payload(payload)
+            return filter_events(fixture_events, start, end)
 
-        release_payload = fetch_fred_payload(
-            self.base_url,
-            "releases",
-            {"limit": str(FRED_RELEASES_LIMIT)},
-            self.api_key,
-        )
-        release_names = parse_fred_release_list(release_payload)
-        release_dates: list[tuple[int, str, str | None]] = []
-        for release_id in release_names:
-            date_params = {
-                "release_id": str(release_id),
-                "realtime_start": start.date().isoformat(),
-                "realtime_end": end.date().isoformat(),
-                "include_release_dates_with_no_data": "true",
-                "limit": str(FRED_RELEASE_DATES_LIMIT),
-            }
-            date_payload = fetch_fred_payload(
+        # Use configured release IDs or default to high-impact releases
+        ids_to_fetch = self.release_ids or tuple(DEFAULT_FRED_RELEASE_IDS)
+
+        events: list[EconomicCalendarEvent] = []
+        for release_id in ids_to_fetch:
+            release_dates = fetch_fred_release_dates(
                 self.base_url,
-                "release/dates",
-                date_params,
                 self.api_key,
+                release_id,
+                start,
+                end,
             )
-            release_dates.extend(parse_fred_release_dates(date_payload))
-        events = build_fred_events(release_dates, release_names)
+            events.extend(release_dates)
+
+        logger.info(
+            "FRED calendar fetch complete: release_ids=%s events=%s",
+            len(ids_to_fetch),
+            len(events),
+        )
         return filter_events(events, start, end)
 
 
@@ -280,26 +310,30 @@ def fetch_fred_payload(
     params: dict[str, str],
     api_key: str,
 ) -> dict[str, Any]:
-    import urllib.parse
-    import urllib.request
-    from urllib.error import HTTPError, URLError
-    import socket
+    import httpx
 
     if not api_key:
         raise ValueError("MERIDIAN_FRED_API_KEY is required for fred source.")
 
     request_params = {"api_key": api_key, "file_type": "json", **params}
     url = f"{base_url.rstrip('/')}/{endpoint.lstrip('/')}"
-    url = f"{url}?{urllib.parse.urlencode(request_params)}"
-    request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+
     for attempt in range(2):
         try:
-            with urllib.request.urlopen(request, timeout=FRED_REQUEST_TIMEOUT) as response:
-                return json.loads(response.read().decode("utf-8"))
-        except HTTPError as exc:
-            logger.warning("FRED API request failed (%s) for %s", exc.code, endpoint)
+            with httpx.Client(timeout=FRED_REQUEST_TIMEOUT) as client:
+                response = client.get(
+                    url,
+                    params=request_params,
+                    headers={"User-Agent": "Mozilla/5.0"},
+                )
+                response.raise_for_status()
+                return response.json()
+        except httpx.HTTPStatusError as exc:
+            logger.warning(
+                "FRED API request failed (%s) for %s", exc.response.status_code, endpoint
+            )
             return {}
-        except (TimeoutError, socket.timeout, ConnectionResetError, OSError, URLError) as exc:
+        except (httpx.TimeoutException, httpx.ConnectError, httpx.ReadError) as exc:
             if attempt == 0:
                 logger.warning(
                     "FRED API request failed for %s: %s (retrying once).",
@@ -311,6 +345,70 @@ def fetch_fred_payload(
             logger.warning("FRED API request failed for %s: %s", endpoint, exc)
             return {}
     return {}
+
+
+def fetch_fred_release_dates(
+    base_url: str,
+    api_key: str,
+    release_id: int,
+    start: datetime,
+    end: datetime,
+) -> list[EconomicCalendarEvent]:
+    """Fetch release dates for a specific FRED release ID and return as events."""
+    # Get release info from mappings
+    release_info = FRED_RELEASE_MAPPINGS.get(release_id)
+    if release_info is None:
+        event_name = f"FRED Release {release_id}"
+        impact_level = FRED_IMPACT_LEVEL
+        region = "USD"
+    else:
+        event_name, impact_level, region = release_info
+
+    params = {
+        "release_id": str(release_id),
+        "realtime_start": start.date().isoformat(),
+        "realtime_end": end.date().isoformat(),
+        "include_release_dates_with_no_data": "true",
+        "sort_order": "asc",
+        "limit": "20",
+    }
+
+    payload = fetch_fred_payload(base_url, "release/dates", params, api_key)
+    if not payload:
+        return []
+
+    release_dates_raw = payload.get("release_dates", [])
+    if not isinstance(release_dates_raw, list):
+        return []
+
+    events: list[EconomicCalendarEvent] = []
+    for entry in release_dates_raw:
+        if not isinstance(entry, dict):
+            continue
+        date_str = entry.get("date")
+        if not date_str:
+            continue
+
+        try:
+            event_date = parse_event_datetime(date_str)
+        except ValueError:
+            continue
+
+        events.append(
+            EconomicCalendarEvent(
+                event_name=event_name,
+                event_date=event_date,
+                region=region,
+                impact_level=impact_level,
+                expected_value=None,
+                actual_value=None,
+                previous_value=None,
+                surprise_direction=None,
+                surprise_magnitude=None,
+            )
+        )
+
+    return events
 
 
 def parse_fred_release_list(payload: Any) -> dict[int, str]:

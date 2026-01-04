@@ -1,0 +1,96 @@
+{
+  "event_name": "1978-1980 Iranian Revolution and Hostage Crisis",
+  "date_range": "1978-10 to 1980-09",
+  "event_type": "geopolitical_conflict",
+  "significance_score": 92,
+  "structural_drivers": [
+    "Shah overthrow and Islamic Revolution",
+    "Iranian oil exports halted completely",
+    "US embassy hostage crisis and sanctions",
+    "Iraq-Iran war outbreak compounded losses"
+  ],
+  "metal_impacts": {
+    "gold": {
+      "direction": "up",
+      "magnitude": "+300% from 1978 to 1980 peak",
+      "driver": "Geopolitical crisis, inflation fears, dollar weakness"
+    },
+    "silver": {
+      "direction": "up",
+      "magnitude": "+700% to 1980 peak (Hunt Brothers effect)",
+      "driver": "Speculation and industrial hoarding"
+    },
+    "copper": {
+      "direction": "up",
+      "magnitude": "+40% on inflation",
+      "driver": "Industrial demand and inflation hedge"
+    }
+  },
+  "traditional_market_reaction": [
+    "Oil prices tripled from $13 to $40/barrel",
+    "Second oil shock triggered global recession",
+    "US inflation peaked above 14%",
+    "Fed began Volcker tightening cycle"
+  ],
+  "crypto_reaction": [],
+  "crypto_transmission": {
+    "exists": false,
+    "path": "",
+    "strength": "none"
+  },
+  "time_delays": [
+    "Oil spike began immediately with revolution",
+    "Gold rally accelerated over 12 months",
+    "Inflation impact persisted 2+ years"
+  ],
+  "lessons": [
+    "Major producer regime change creates multi-year supply uncertainty",
+    "Energy shocks transmit to inflation and metals with lag",
+    "Compounding geopolitical events amplify impacts",
+    "Policy response (Volcker) eventually breaks inflation cycle"
+  ],
+  "counter_examples": [
+    "Silver peak was unsustainable speculation (Hunt Brothers)",
+    "Volcker tightening eventually crushed gold"
+  ],
+  "quantitative_impacts": {
+    "production_drop_pct": 100,
+    "production_drop_mbpd": 5.5,
+    "peak_price_impact_pct": 200,
+    "duration_days": 700,
+    "recovery_months": 120,
+    "global_supply_impact_pct": 8.5
+  },
+  "time_horizon_behavior": {
+    "short_term_1_5d": {
+      "oil_direction": "up",
+      "oil_magnitude_pct": 20,
+      "gold_direction": "up",
+      "gold_magnitude_pct": 5,
+      "volatility": "extreme",
+      "primary_driver": "Revolution and regime uncertainty"
+    },
+    "medium_term_2_8w": {
+      "oil_direction": "up",
+      "oil_magnitude_pct": 100,
+      "gold_direction": "up",
+      "gold_magnitude_pct": 50,
+      "volatility": "extreme",
+      "primary_driver": "Sustained production loss and hostage crisis"
+    },
+    "long_term_6m_plus": {
+      "oil_direction": "up",
+      "oil_magnitude_pct": 200,
+      "gold_direction": "up",
+      "gold_magnitude_pct": 300,
+      "volatility": "high",
+      "primary_driver": "Iran-Iraq war, inflation spiral, dollar crisis"
+    }
+  },
+  "transmission_channels": [
+    "oil_supply_disruption",
+    "risk_off_flight_to_safety",
+    "sanctions_trade_war",
+    "inflation_spike"
+  ]
+}

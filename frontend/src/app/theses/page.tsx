@@ -2,6 +2,19 @@ import Link from "next/link";
 
 import { getTheses, getThesis, type Thesis } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -23,16 +36,19 @@ const ThesisCard = ({
   thesis: Thesis;
   isSelected: boolean;
 }) => (
-  <Link
-    href={`/theses?selected=${thesis.id}`}
-    className={`thesis-card${isSelected ? " thesis-card--selected" : ""}`}
-  >
-    <h4 className="thesis-card__title">{thesis.title}</h4>
-    <div className="thesis-card__meta">
-      <span>{thesis.asset_type}</span>
-      {thesis.asset_symbol && <span>{thesis.asset_symbol}</span>}
-      <span>{formatDate(thesis.updated_at)}</span>
-    </div>
+  <Link href={`/theses?selected=${thesis.id}`}>
+    <Card
+      className={`p-3 cursor-pointer hover:shadow-md transition-shadow ${
+        isSelected ? "ring-2 ring-primary" : ""
+      }`}
+    >
+      <h4 className="font-medium text-sm">{thesis.title}</h4>
+      <div className="flex gap-2 text-xs text-muted-foreground mt-1">
+        <span>{thesis.asset_type}</span>
+        {thesis.asset_symbol && <span>{thesis.asset_symbol}</span>}
+        <span>{formatDate(thesis.updated_at)}</span>
+      </div>
+    </Card>
   </Link>
 );
 
@@ -45,15 +61,15 @@ const Section = ({
   theses: Thesis[];
   selectedId: string | undefined;
 }) => (
-  <section className="radar-section">
-    <div className="radar-section__header">
-      <h2>{title}</h2>
-      <span className="count-chip">{theses.length}</span>
+  <section className="space-y-3">
+    <div className="flex justify-between items-center">
+      <h2 className="font-semibold">{title}</h2>
+      <Badge variant="secondary">{theses.length}</Badge>
     </div>
     {theses.length === 0 ? (
-      <p className="empty-state">No theses in this category.</p>
+      <p className="text-muted-foreground text-sm">No theses in this category.</p>
     ) : (
-      <div className="event-grid">
+      <div className="space-y-2">
         {theses.map((thesis) => (
           <ThesisCard
             key={thesis.id}
@@ -77,26 +93,27 @@ const ThesisForm = ({
   const title = isNew ? "New Thesis" : "Edit Thesis";
 
   return (
-    <div className="thesis-editor">
-      <div className="thesis-editor__header">
-        <h2>{title}</h2>
+    <Card className="p-6 lg:col-span-2">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold">{title}</h2>
         {!isNew && thesis && (
-          <a
-            href={`${process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000"}/theses/${thesis.id}/export.md`}
-            className="form-actions a"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Export Markdown
-          </a>
+          <Button variant="outline" size="sm" asChild>
+            <a
+              href={`${process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000"}/theses/${thesis.id}/export.md`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Export Markdown
+            </a>
+          </Button>
         )}
       </div>
 
-      <form action={action} method="post" className="thesis-form">
-        <div className="thesis-form__row">
-          <div className="form-field">
-            <label htmlFor="title">Title *</label>
-            <input
+      <form action={action} method="post" className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="title">Title *</Label>
+            <Input
               type="text"
               id="title"
               name="title"
@@ -104,23 +121,28 @@ const ThesisForm = ({
               defaultValue={thesis?.title ?? ""}
             />
           </div>
-          <div className="form-field">
-            <label htmlFor="status">Status</label>
-            <select id="status" name="status" defaultValue={thesis?.status ?? "watching"}>
+          <div className="space-y-1.5">
+            <Label htmlFor="status">Status</Label>
+            <select
+              id="status"
+              name="status"
+              defaultValue={thesis?.status ?? "watching"}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            >
               <option value="watching">Watching</option>
               <option value="active">Active</option>
               <option value="closed">Closed</option>
             </select>
-            <span className="form-hint">
+            <span className="text-xs text-muted-foreground">
               Active requires bear case + invalidation
             </span>
           </div>
         </div>
 
-        <div className="thesis-form__row">
-          <div className="form-field">
-            <label htmlFor="asset_type">Asset Type *</label>
-            <input
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="asset_type">Asset Type *</Label>
+            <Input
               type="text"
               id="asset_type"
               name="asset_type"
@@ -129,9 +151,9 @@ const ThesisForm = ({
               defaultValue={thesis?.asset_type ?? ""}
             />
           </div>
-          <div className="form-field">
-            <label htmlFor="asset_symbol">Asset Symbol</label>
-            <input
+          <div className="space-y-1.5">
+            <Label htmlFor="asset_symbol">Asset Symbol</Label>
+            <Input
               type="text"
               id="asset_symbol"
               name="asset_symbol"
@@ -141,20 +163,21 @@ const ThesisForm = ({
           </div>
         </div>
 
-        <div className="form-field form-field--full">
-          <label htmlFor="core_thesis">Core Thesis *</label>
+        <div className="space-y-1.5 md:col-span-2">
+          <Label htmlFor="core_thesis">Core Thesis *</Label>
           <textarea
             id="core_thesis"
             name="core_thesis"
             required
             placeholder="One paragraph: why this, why now"
             defaultValue={thesis?.core_thesis ?? ""}
+            className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
           />
         </div>
 
-        <div className="form-field form-field--full">
-          <label htmlFor="trigger_event">Trigger Event</label>
-          <input
+        <div className="space-y-1.5 md:col-span-2">
+          <Label htmlFor="trigger_event">Trigger Event</Label>
+          <Input
             type="text"
             id="trigger_event"
             name="trigger_event"
@@ -163,41 +186,44 @@ const ThesisForm = ({
           />
         </div>
 
-        <div className="form-field form-field--full">
-          <label htmlFor="historical_precedent">Historical Precedent</label>
+        <div className="space-y-1.5 md:col-span-2">
+          <Label htmlFor="historical_precedent">Historical Precedent</Label>
           <textarea
             id="historical_precedent"
             name="historical_precedent"
             placeholder="Similar past events and outcomes"
             defaultValue={thesis?.historical_precedent ?? ""}
+            className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
           />
         </div>
 
-        <div className="thesis-form__row">
-          <div className="form-field">
-            <label htmlFor="bull_case">Bull Case</label>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="bull_case">Bull Case</Label>
             <textarea
               id="bull_case"
               name="bull_case"
               placeholder="One bullet per line"
               defaultValue={arrayToLines(thesis?.bull_case ?? null)}
+              className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             />
           </div>
-          <div className="form-field">
-            <label htmlFor="bear_case">Bear Case / Counter-Case</label>
+          <div className="space-y-1.5">
+            <Label htmlFor="bear_case">Bear Case / Counter-Case</Label>
             <textarea
               id="bear_case"
               name="bear_case"
               placeholder="One bullet per line (required for active)"
               defaultValue={arrayToLines(thesis?.bear_case ?? null)}
+              className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             />
           </div>
         </div>
 
-        <div className="thesis-form__row">
-          <div className="form-field">
-            <label htmlFor="entry_consideration">Entry Consideration</label>
-            <input
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="entry_consideration">Entry Consideration</Label>
+            <Input
               type="text"
               id="entry_consideration"
               name="entry_consideration"
@@ -205,9 +231,9 @@ const ThesisForm = ({
               defaultValue={thesis?.entry_consideration ?? ""}
             />
           </div>
-          <div className="form-field">
-            <label htmlFor="target">Target</label>
-            <input
+          <div className="space-y-1.5">
+            <Label htmlFor="target">Target</Label>
+            <Input
               type="text"
               id="target"
               name="target"
@@ -215,9 +241,9 @@ const ThesisForm = ({
               defaultValue={thesis?.target ?? ""}
             />
           </div>
-          <div className="form-field">
-            <label htmlFor="invalidation">Invalidation</label>
-            <input
+          <div className="space-y-1.5">
+            <Label htmlFor="invalidation">Invalidation</Label>
+            <Input
               type="text"
               id="invalidation"
               name="invalidation"
@@ -227,10 +253,10 @@ const ThesisForm = ({
           </div>
         </div>
 
-        <div className="thesis-form__row">
-          <div className="form-field">
-            <label htmlFor="vehicle">Vehicle</label>
-            <input
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="vehicle">Vehicle</Label>
+            <Input
               type="text"
               id="vehicle"
               name="vehicle"
@@ -238,9 +264,9 @@ const ThesisForm = ({
               defaultValue={thesis?.vehicle ?? ""}
             />
           </div>
-          <div className="form-field">
-            <label htmlFor="position_size">Position Size</label>
-            <input
+          <div className="space-y-1.5">
+            <Label htmlFor="position_size">Position Size</Label>
+            <Input
               type="text"
               id="position_size"
               name="position_size"
@@ -250,61 +276,67 @@ const ThesisForm = ({
           </div>
         </div>
 
-        <div className="form-actions">
-          <button type="submit">{isNew ? "Create Thesis" : "Save Changes"}</button>
-          <Link href="/theses">Cancel</Link>
+        <div className="flex gap-2 pt-4">
+          <Button type="submit">{isNew ? "Create Thesis" : "Save Changes"}</Button>
+          <Button variant="ghost" asChild>
+            <Link href="/theses">Cancel</Link>
+          </Button>
         </div>
       </form>
 
       {!isNew && thesis && thesis.updates.length > 0 && (
-        <div className="updates-section">
-          <h3>Updates Log</h3>
-          <table className="updates-table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Note</th>
-                <th>Price</th>
-              </tr>
-            </thead>
-            <tbody>
+        <div className="mt-6 pt-6 border-t">
+          <h3 className="text-lg font-semibold mb-4">Updates Log</h3>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead>Note</TableHead>
+                <TableHead>Price</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {thesis.updates.map((update, idx) => (
-                <tr key={idx}>
-                  <td>{formatDate(update.date)}</td>
-                  <td>{update.note}</td>
-                  <td>{update.price ?? "—"}</td>
-                </tr>
+                <TableRow key={idx}>
+                  <TableCell>{formatDate(update.date)}</TableCell>
+                  <TableCell>{update.note}</TableCell>
+                  <TableCell>{update.price ?? "—"}</TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       )}
 
       {!isNew && thesis && (
-        <div className="updates-section">
-          <h3>Add Update</h3>
+        <div className="mt-6 pt-6 border-t">
+          <h3 className="text-lg font-semibold mb-4">Add Update</h3>
           <form
             action={`/api/theses/${thesis.id}/updates`}
             method="post"
-            className="add-update-form"
+            className="flex gap-2 items-end"
           >
-            <input
-              type="text"
-              name="note"
-              placeholder="Note (required)"
-              required
-            />
-            <input
-              type="number"
-              name="price"
-              placeholder="Price"
-              step="any"
-            />
-            <button type="submit">Add</button>
+            <div className="flex-1 space-y-1.5">
+              <Input
+                type="text"
+                name="note"
+                placeholder="Note (required)"
+                required
+              />
+            </div>
+            <div className="w-32 space-y-1.5">
+              <Input
+                type="number"
+                name="price"
+                placeholder="Price"
+                step="any"
+              />
+            </div>
+            <Button type="submit">Add</Button>
           </form>
         </div>
       )}
-    </div>
+    </Card>
   );
 };
 
@@ -337,38 +369,29 @@ export default async function ThesesPage({
 
   return (
     <>
-      <section className="page-panel">
-        <div className="page-header">
+      <Card className="p-6">
+        <div className="flex justify-between items-start">
           <div>
-            <h1 className="page-title">Thesis Workspace</h1>
-            <p className="page-subtitle">
+            <h1 className="text-3xl font-display font-bold tracking-tight">
+              Thesis Workspace
+            </h1>
+            <p className="text-muted-foreground">
               Track macro theses. Watching → Active (with invalidation) → Closed.
             </p>
           </div>
-          <Link href="/theses?mode=new" className="filter-actions">
-            <span
-              style={{
-                padding: "8px 14px",
-                borderRadius: "999px",
-                background: "var(--accent)",
-                color: "#fff",
-                fontWeight: 600,
-                fontSize: "0.9rem",
-              }}
-            >
-              + New Thesis
-            </span>
-          </Link>
+          <Button asChild>
+            <Link href="/theses?mode=new">+ New Thesis</Link>
+          </Button>
         </div>
         {error && (
-          <div className="error-banner" style={{ marginTop: 16 }}>
+          <div className="bg-destructive/10 text-destructive p-3 rounded-md text-sm mt-4">
             {decodeURIComponent(error)}
           </div>
         )}
-      </section>
+      </Card>
 
-      <div className="thesis-layout">
-        <div className="thesis-sections">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+        <div className="lg:col-span-1 space-y-6">
           <Section title="Watching" theses={watching} selectedId={selectedId} />
           <Section title="Active" theses={active} selectedId={selectedId} />
           <Section title="Closed" theses={closed} selectedId={selectedId} />

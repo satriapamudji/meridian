@@ -1,0 +1,91 @@
+{
+  "event_name": "2011 Libyan Civil War",
+  "date_range": "2011-02 to 2011-10",
+  "event_type": "geopolitical_conflict",
+  "significance_score": 80,
+  "structural_drivers": [
+    "Civil war halted Libyan oil exports",
+    "NATO intervention and regime change",
+    "Loss of 1.6 million barrels per day of light sweet crude"
+  ],
+  "metal_impacts": {
+    "gold": {
+      "direction": "up",
+      "magnitude": "+15% during conflict peak",
+      "driver": "Geopolitical risk and oil shock spillover"
+    },
+    "silver": {
+      "direction": "up",
+      "magnitude": "+25% high beta move",
+      "driver": "Followed gold with industrial speculation"
+    },
+    "copper": {
+      "direction": "up",
+      "magnitude": "+10% on reflation",
+      "driver": "Global stimulus and China demand"
+    }
+  },
+  "traditional_market_reaction": [
+    "Brent crude spiked above $125/barrel",
+    "European refiners impacted by light crude loss",
+    "Energy stocks rallied globally"
+  ],
+  "crypto_reaction": [],
+  "crypto_transmission": {
+    "exists": false,
+    "path": "",
+    "strength": "none"
+  },
+  "time_delays": [
+    "Oil spike immediate within first 2 weeks",
+    "Gold followed within 1 week",
+    "Full production recovery took 3+ years"
+  ],
+  "lessons": [
+    "Light sweet crude disruptions impact European refiners disproportionately",
+    "Civil wars create prolonged supply uncertainty",
+    "Regime change extends recovery timeline significantly"
+  ],
+  "counter_examples": [
+    "Silver spike reversed sharply in May 2011 unrelated to Libya"
+  ],
+  "quantitative_impacts": {
+    "production_drop_pct": 95,
+    "production_drop_mbpd": 1.6,
+    "peak_price_impact_pct": 35,
+    "duration_days": 240,
+    "recovery_months": 36,
+    "global_supply_impact_pct": 1.8
+  },
+  "time_horizon_behavior": {
+    "short_term_1_5d": {
+      "oil_direction": "up",
+      "oil_magnitude_pct": 10,
+      "gold_direction": "up",
+      "gold_magnitude_pct": 3,
+      "volatility": "high",
+      "primary_driver": "Conflict escalation headlines"
+    },
+    "medium_term_2_8w": {
+      "oil_direction": "up",
+      "oil_magnitude_pct": 35,
+      "gold_direction": "up",
+      "gold_magnitude_pct": 15,
+      "volatility": "elevated",
+      "primary_driver": "Prolonged production outage"
+    },
+    "long_term_6m_plus": {
+      "oil_direction": "down",
+      "oil_magnitude_pct": -20,
+      "gold_direction": "up",
+      "gold_magnitude_pct": 10,
+      "volatility": "normal",
+      "primary_driver": "SPR releases and demand destruction offset; gold on broader macro"
+    }
+  },
+  "transmission_channels": [
+    "oil_supply_disruption",
+    "risk_off_flight_to_safety",
+    "sanctions_trade_war"
+  ]
+}

@@ -1,6 +1,12 @@
 import Link from "next/link";
-
 import { getHealth } from "@/lib/api";
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 const getBackendStatus = async () => {
   try {
@@ -16,32 +22,54 @@ export default async function HomePage() {
   const isOk = status === "ok";
 
   return (
-    <>
-      <section className="hero">
-        <h1>Macro signal clarity, without the noise.</h1>
-        <p>
+    <div className="space-y-12 py-8">
+      <section className="flex flex-col space-y-4">
+        <h1 className="font-display text-4xl font-bold tracking-tight md:text-5xl">
+          Macro signal clarity, without the noise.
+        </h1>
+        <p className="max-w-2xl text-lg text-muted-foreground">
           Meridian keeps policy shifts, macro shocks, and metals implications in one place.
           Start with the Macro Radar and drill into event analysis when it matters.
         </p>
-        <div className="status-chip">
-          Backend status: {isOk ? "ok" : "unavailable"}
+        <div>
+          <Badge variant={isOk ? "analyzed" : "destructive"} className="text-sm">
+            Backend status: {isOk ? "ok" : "unavailable"}
+          </Badge>
         </div>
       </section>
 
-      <section className="cards">
-        <Link className="card" href="/macro-radar">
-          <h3>Macro Radar</h3>
-          <p>Priority events, raw facts, and interpretation with clear separation.</p>
+      <section className="grid gap-6 md:grid-cols-3">
+        <Link href="/macro-radar" className="group block">
+          <Card className="h-full transition-shadow hover:shadow-lg">
+            <CardHeader>
+              <CardTitle>Macro Radar</CardTitle>
+              <CardDescription>
+                Priority events, raw facts, and interpretation with clear separation.
+              </CardDescription>
+            </CardHeader>
+          </Card>
         </Link>
-        <Link className="card" href="/metals">
-          <h3>Metals Intelligence</h3>
-          <p>Curated knowledge base for gold, silver, and copper signals.</p>
+        <Link href="/metals" className="group block">
+          <Card className="h-full transition-shadow hover:shadow-lg">
+            <CardHeader>
+              <CardTitle>Metals Intelligence</CardTitle>
+              <CardDescription>
+                Curated knowledge base for gold, silver, and copper signals.
+              </CardDescription>
+            </CardHeader>
+          </Card>
         </Link>
-        <Link className="card" href="/theses">
-          <h3>Thesis Workspace</h3>
-          <p>Track your macro theses and note how the narrative evolves.</p>
+        <Link href="/theses" className="group block">
+          <Card className="h-full transition-shadow hover:shadow-lg">
+            <CardHeader>
+              <CardTitle>Thesis Workspace</CardTitle>
+              <CardDescription>
+                Track your macro theses and note how the narrative evolves.
+              </CardDescription>
+            </CardHeader>
+          </Card>
         </Link>
       </section>
-    </>
+    </div>
   );
 }

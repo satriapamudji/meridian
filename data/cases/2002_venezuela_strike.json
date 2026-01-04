@@ -1,0 +1,90 @@
+{
+  "event_name": "2002-2003 Venezuela General Strike",
+  "date_range": "2002-12 to 2003-02",
+  "event_type": "supply_disruption",
+  "significance_score": 75,
+  "structural_drivers": [
+    "PDVSA worker strike halted oil production",
+    "Political crisis under Chavez government",
+    "Loss of 2.5-3 million barrels per day"
+  ],
+  "metal_impacts": {
+    "gold": {
+      "direction": "up",
+      "magnitude": "+8% during strike period",
+      "driver": "Geopolitical risk premium and oil shock fears"
+    },
+    "silver": {
+      "direction": "up",
+      "magnitude": "+5% following gold",
+      "driver": "Correlation with gold, limited industrial impact"
+    },
+    "copper": {
+      "direction": "flat",
+      "magnitude": "Minimal impact",
+      "driver": "Venezuela not a major copper producer"
+    }
+  },
+  "traditional_market_reaction": [
+    "Oil prices spiked 50% during strike",
+    "Energy stocks outperformed",
+    "Emerging market stress in Latin America"
+  ],
+  "crypto_reaction": [],
+  "crypto_transmission": {
+    "exists": false,
+    "path": "",
+    "strength": "none"
+  },
+  "time_delays": [
+    "Oil price spike was immediate within first week",
+    "Gold response lagged oil by 1-2 weeks",
+    "Full production recovery took 6+ months"
+  ],
+  "lessons": [
+    "Major producer strikes can remove significant supply quickly",
+    "Political instability in petrostates creates persistent risk",
+    "Recovery timeline often longer than initial disruption"
+  ],
+  "counter_examples": [
+    "Strike resolution led to rapid oil price reversal"
+  ],
+  "quantitative_impacts": {
+    "production_drop_pct": 90,
+    "production_drop_mbpd": 2.6,
+    "peak_price_impact_pct": 50,
+    "duration_days": 63,
+    "recovery_months": 6,
+    "global_supply_impact_pct": 3.2
+  },
+  "time_horizon_behavior": {
+    "short_term_1_5d": {
+      "oil_direction": "up",
+      "oil_magnitude_pct": 15,
+      "gold_direction": "up",
+      "gold_magnitude_pct": 2,
+      "volatility": "high",
+      "primary_driver": "Supply shock headlines"
+    },
+    "medium_term_2_8w": {
+      "oil_direction": "up",
+      "oil_magnitude_pct": 50,
+      "gold_direction": "up",
+      "gold_magnitude_pct": 8,
+      "volatility": "elevated",
+      "primary_driver": "Sustained production loss"
+    },
+    "long_term_6m_plus": {
+      "oil_direction": "down",
+      "oil_magnitude_pct": -30,
+      "gold_direction": "flat",
+      "gold_magnitude_pct": 0,
+      "volatility": "normal",
+      "primary_driver": "Production recovery and demand adjustment"
+    }
+  },
+  "transmission_channels": [
+    "oil_supply_disruption",
+    "risk_off_flight_to_safety"
+  ]
+}

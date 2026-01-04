@@ -8,6 +8,7 @@ from typing import Any, Sequence
 import psycopg
 from psycopg.types.json import Json
 
+from app.analysis.market_context import fetch_latest_market_context
 from app.core.settings import get_settings, normalize_database_url
 from app.ingestion.prices import DEFAULT_RATIO_NAME, GOLD_SYMBOL, SILVER_SYMBOL
 
@@ -24,6 +25,95 @@ METAL_SYMBOLS = {
 METAL_ORDER = ("gold", "silver", "copper")
 
 
+def fetch_market_context_summary() -> dict[str, Any] | None:
+    """
+    Fetch the latest market context and return a summary dict for the digest.
+
+    Returns:
+        Dictionary with regimes, key_levels, ratios, and position_sizing,
+        or None if no market context is available.
+    """
+    record = fetch_latest_market_context()
+    if record is None:
+        return None
+
+    return {
+        "context_date": record.context_date.isoformat(),
+        "regimes": {
+            "volatility": record.volatility_regime,
+            "dollar": record.dollar_regime,
+            "curve": record.curve_regime,
+            "credit": record.credit_regime,
+        },
+        "key_levels": {
+            "vix": record.vix_level,
+            "dxy": record.dxy_level,
+            "us10y": record.us10y_level,
+            "us2y": record.us2y_level,
+            "spread_2s10s": record.spread_2s10s,
+            "gold": record.gold_level,
+            "oil": record.oil_level,
+            "spx": record.spx_level,
+            "btc": record.btc_level,
+            "hy_spread": record.hy_spread,
+        },
+        "ratios": {
+            "gold_silver": record.gold_silver_ratio,
+            "copper_gold": record.copper_gold_ratio,
+            "vix_term_structure": record.vix_term_structure,
+            "spy_rsp": record.spy_rsp_ratio,
+        },
+        "suggested_size_multiplier": record.suggested_size_multiplier,
+    }
+
+
+def _render_market_context_section(market_context: dict[str, Any] | None) -> list[str]:
+    """Render market context section for the digest text."""
+    lines: list[str] = []
+    lines.append("MARKET CONTEXT")
+
+    if market_context is None:
+        lines.append("- No market context available")
+        return lines
+
+    # Regimes
+    regimes = market_context.get("regimes", {})
+    regime_parts = []
+    if regimes.get("volatility"):
+        regime_parts.append(f"Vol: {regimes['volatility'].upper()}")
+    if regimes.get("dollar"):
+        regime_parts.append(f"USD: {regimes['dollar'].upper()}")
+    if regimes.get("curve"):
+        regime_parts.append(f"Curve: {regimes['curve'].upper()}")
+    if regimes.get("credit"):
+        regime_parts.append(f"Credit: {regimes['credit'].upper()}")
+    if regime_parts:
+        lines.append(f"Regimes: {' | '.join(regime_parts)}")
+
+    # Key levels
+    key_levels = market_context.get("key_levels", {})
+    level_parts = []
+    if key_levels.get("vix") is not None:
+        level_parts.append(f"VIX {key_levels['vix']:.1f}")
+    if key_levels.get("dxy") is not None:
+        level_parts.append(f"DXY {key_levels['dxy']:.1f}")
+    if key_levels.get("us10y") is not None:
+        level_parts.append(f"10Y {key_levels['us10y']:.2f}%")
+    if key_levels.get("gold") is not None:
+        level_parts.append(f"Gold ${key_levels['gold']:.0f}")
+    if key_levels.get("oil") is not None:
+        level_parts.append(f"Oil ${key_levels['oil']:.1f}")
+    if level_parts:
+        lines.append(f"Levels: {' | '.join(level_parts)}")
+
+    # Position sizing
+    multiplier = market_context.get("suggested_size_multiplier")
+    if multiplier is not None:
+        lines.append(f"Position Sizing: {multiplier:.0%} of normal")
+
+    return lines
+
+
 @dataclass(frozen=True)
 class DailyDigest:
     digest_date: date
@@ -35,6 +125,7 @@ class DailyDigest:
     economic_calendar: list[dict[str, Any]]
     active_theses: list[dict[str, Any]]
     full_digest: str
+    market_context: dict[str, Any] | None = None
     timezone: str = DEFAULT_TIMEZONE
 
     def as_response(self) -> dict[str, Any]:
@@ -44,6 +135,7 @@ class DailyDigest:
             "window_start": self.window_start.isoformat(),
             "window_end": self.window_end.isoformat(),
             "generated_at": self.generated_at.isoformat(),
+            "market_context": self.market_context,
             "priority_events": self.priority_events,
             "metals_snapshot": self.metals_snapshot,
             "economic_calendar": self.economic_calendar,
@@ -76,6 +168,7 @@ def get_or_create_digest(digest_date: date) -> DailyDigest:
         metals_snapshot = fetch_metals_snapshot(conn, digest_date)
         economic_calendar = fetch_economic_calendar(conn, window_start, window_end)
         active_theses = fetch_active_theses(conn, limit=THESIS_LIMIT)
+        market_context = fetch_market_context_summary()
         digest = build_digest_payload(
             digest_date,
             window_start,
@@ -85,6 +178,7 @@ def get_or_create_digest(digest_date: date) -> DailyDigest:
             economic_calendar,
             active_theses,
             generated_at=datetime.now(timezone.utc),
+            market_context=market_context,
         )
         _cache_digest(conn, digest)
         return digest
@@ -100,6 +194,7 @@ def build_digest_payload(
     active_theses: Sequence[dict[str, Any]],
     *,
     generated_at: datetime,
+    market_context: dict[str, Any] | None = None,
 ) -> DailyDigest:
     digest = render_digest(
         digest_date,
@@ -108,6 +203,7 @@ def build_digest_payload(
         economic_calendar,
         active_theses,
         DEFAULT_TIMEZONE,
+        market_context=market_context,
     )
     return DailyDigest(
         digest_date=digest_date,
@@ -119,6 +215,7 @@ def build_digest_payload(
         economic_calendar=list(economic_calendar),
         active_theses=list(active_theses),
         full_digest=digest,
+        market_context=market_context,
     )
 
 
@@ -129,10 +226,15 @@ def render_digest(
     economic_calendar: Sequence[dict[str, Any]],
     active_theses: Sequence[dict[str, Any]],
     timezone_label: str,
+    market_context: dict[str, Any] | None = None,
 ) -> str:
     lines: list[str] = []
     lines.append("MERIDIAN DAILY BRIEFING")
     lines.append(f"{digest_date.strftime('%A, %b %d, %Y')} ({timezone_label})")
+    lines.append("")
+
+    # Market context section at the top
+    lines.extend(_render_market_context_section(market_context))
     lines.append("")
 
     lines.append(f"PRIORITY EVENTS ({len(priority_events)})")

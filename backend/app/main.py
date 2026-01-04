@@ -5,6 +5,7 @@ import logging
 from fastapi import FastAPI, HTTPException
 import psycopg
 
+from app.api.dashboard import router as dashboard_router
 from app.api.digest import router as digest_router
 from app.api.events import router as events_router
 from app.api.theses import router as theses_router
@@ -40,6 +41,7 @@ def create_app() -> FastAPI:
     app.include_router(events_router)
     app.include_router(digest_router)
     app.include_router(theses_router)
+    app.include_router(dashboard_router)
 
     return app
 

@@ -1,7 +1,12 @@
 import Link from "next/link";
 
 import { getEvents, type MacroEvent } from "@/lib/api";
-import { formatDateTime, formatStatus } from "@/lib/format";
+import { formatDateTime, formatScoreBand, formatStatus } from "@/lib/format";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -30,13 +35,7 @@ const normalizeFilter = (value: string | undefined) => {
   return value;
 };
 
-const getScore = (event: MacroEvent) => event.raw.significance_score ?? 0;
-
-const filterByDate = (
-  event: MacroEvent,
-  start: Date | undefined,
-  end: Date | undefined,
-) => {
+const filterByDate = (event: MacroEvent, start: Date | undefined, end: Date | undefined) => {
   if (!start && !end) {
     return true;
   }
@@ -64,23 +63,63 @@ const buildOptions = (values: Array<string | null>) =>
 const toStartOfDay = (value: string) => new Date(`${value}T00:00:00Z`);
 const toEndOfDay = (value: string) => new Date(`${value}T23:59:59.999Z`);
 
+const isAnalysisReady = (event: MacroEvent) => {
+  const rawFacts = event.analysis.raw_facts;
+  const interpretation = event.analysis.interpretation;
+  return Boolean(
+    (rawFacts && rawFacts.length > 0) ||
+      interpretation.metal_impacts ||
+      interpretation.historical_precedent ||
+      interpretation.counter_case ||
+      interpretation.crypto_transmission,
+  );
+};
+
+const scoreBand = (score: number | null) => {
+  if (score === null) {
+    return "Unscored";
+  }
+  return formatScoreBand(score);
+};
+
+const scoreBadgeVariant = (band: string) => {
+  if (band === "Priority") return "default";
+  if (band === "Monitoring") return "secondary";
+  if (band === "Logged") return "outline";
+  return "outline";
+};
+
 const EventCard = ({ event }: { event: MacroEvent }) => {
-  const score = getScore(event);
-  const isPriority = score >= 65;
+  const score = event.raw.significance_score;
+  const band = scoreBand(score);
+  const analysisReady = isAnalysisReady(event);
+
   return (
-    <Link
-      href={`/macro-radar/${event.raw.id}`}
-      className={`event-card${isPriority ? " event-card--priority" : ""}`}
-    >
-      <div className="event-card__header">
-        <span className="event-score">{score}</span>
-        <span className="event-source">{event.raw.source}</span>
-      </div>
-      <h3>{event.raw.headline}</h3>
-      <div className="event-card__meta">
-        <span>{formatDateTime(event.raw.published_at)}</span>
-        <span className="event-status">Analysis: {formatStatus(event.raw.status)}</span>
-      </div>
+    <Link href={`/macro-radar/${event.raw.id}`} className="block">
+      <Card className="h-full transition-shadow hover:shadow-lg">
+        <CardHeader className="space-y-2">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl font-bold text-primary">
+                {score === null ? "\u2014" : score}
+              </span>
+              <Badge variant={scoreBadgeVariant(band) as any}>{band}</Badge>
+              <Badge variant={analysisReady ? "analyzed" : "pending"}>
+                {analysisReady ? "analysis" : "pending"}
+              </Badge>
+            </div>
+            <span className="text-xs uppercase tracking-wide text-muted-foreground">
+              {event.raw.source}
+            </span>
+          </div>
+          <CardTitle className="text-base leading-snug">{event.raw.headline}</CardTitle>
+          <CardDescription className="flex flex-wrap items-center gap-2 text-xs">
+            <span>{formatDateTime(event.raw.published_at)}</span>
+            <span className="text-muted-foreground/60">\u2022</span>
+            <span>Status: {formatStatus(event.raw.status)}</span>
+          </CardDescription>
+        </CardHeader>
+      </Card>
     </Link>
   );
 };
@@ -94,18 +133,20 @@ const Section = ({
   subtitle: string;
   events: MacroEvent[];
 }) => (
-  <section className="radar-section">
-    <div className="radar-section__header">
+  <section className="space-y-4">
+    <div className="flex items-start justify-between gap-4">
       <div>
-        <h2>{title}</h2>
-        <p>{subtitle}</p>
+        <h2 className="text-xl font-semibold">{title}</h2>
+        <p className="text-sm text-muted-foreground">{subtitle}</p>
       </div>
-      <span className="count-chip">{events.length}</span>
+      <Badge variant="secondary">{events.length}</Badge>
     </div>
     {events.length === 0 ? (
-      <p className="empty-state">No events match this section.</p>
+      <Card className="p-4">
+        <p className="text-sm text-muted-foreground italic">No events match this section.</p>
+      </Card>
     ) : (
-      <div className="event-grid">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {events.map((event) => (
           <EventCard key={event.raw.id} event={event} />
         ))}
@@ -114,11 +155,7 @@ const Section = ({
   </section>
 );
 
-export default async function MacroRadarPage({
-  searchParams,
-}: {
-  searchParams?: SearchParams;
-}) {
+export default async function MacroRadarPage({ searchParams }: { searchParams?: SearchParams }) {
   const scoreMin = parseNumber(getParam(searchParams?.score_min));
   const scoreMax = parseNumber(getParam(searchParams?.score_max));
   const status = normalizeFilter(getParam(searchParams?.status));
@@ -137,11 +174,11 @@ export default async function MacroRadarPage({
     status && !statusOptions.includes(status) ? [status, ...statusOptions] : statusOptions;
 
   const filteredEvents = events.filter((event) => {
-    const score = getScore(event);
-    if (scoreMin !== undefined && score < scoreMin) {
+    const score = event.raw.significance_score;
+    if (scoreMin !== undefined && (score === null || score < scoreMin)) {
       return false;
     }
-    if (scoreMax !== undefined && score > scoreMax) {
+    if (scoreMax !== undefined && (score === null || score > scoreMax)) {
       return false;
     }
     if (status && event.raw.status !== status) {
@@ -153,88 +190,113 @@ export default async function MacroRadarPage({
     return filterByDate(event, startDateValue, endDateValue);
   });
 
-  const priorityEvents = filteredEvents.filter((event) => getScore(event) >= 65);
-  const monitoringEvents = filteredEvents.filter((event) => {
-    const score = getScore(event);
-    return score >= 50 && score <= 64;
+  const priorityEvents = filteredEvents.filter((event) => {
+    const score = event.raw.significance_score;
+    return score !== null && score >= 65;
   });
-  const loggedEvents = filteredEvents.filter((event) => getScore(event) < 50);
+  const monitoringEvents = filteredEvents.filter((event) => {
+    const score = event.raw.significance_score;
+    return score !== null && score >= 50 && score <= 64;
+  });
+  const loggedEvents = filteredEvents.filter((event) => {
+    const score = event.raw.significance_score;
+    return score !== null && score < 50;
+  });
+  const unscoredEvents = filteredEvents.filter((event) => event.raw.significance_score === null);
 
   return (
-    <>
-      <section className="page-panel">
-        <div className="page-header">
-          <div>
-            <h1 className="page-title">Macro Radar</h1>
-            <p className="page-subtitle">
-              Macro events organized by significance. Scores and status come from the backend.
-            </p>
+    <div className="space-y-10 py-4">
+      <Card>
+        <CardHeader>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <CardTitle className="font-display text-3xl tracking-tight">
+                Macro Radar
+              </CardTitle>
+              <CardDescription>
+                Macro events organized by significance. Scores and status come from the backend.
+              </CardDescription>
+            </div>
+            <Badge variant="secondary">{filteredEvents.length} events</Badge>
           </div>
-          <span className="count-chip">{filteredEvents.length} events</span>
-        </div>
-        <form className="filters-panel" method="get">
-          <div className="filters-grid">
-            <label className="filter-field">
-              <span>Score min</span>
-              <input
-                type="number"
-                name="score_min"
-                min={0}
-                max={100}
-                defaultValue={scoreMin ?? ""}
-                placeholder="0"
-              />
-            </label>
-            <label className="filter-field">
-              <span>Score max</span>
-              <input
-                type="number"
-                name="score_max"
-                min={0}
-                max={100}
-                defaultValue={scoreMax ?? ""}
-                placeholder="100"
-              />
-            </label>
-            <label className="filter-field">
-              <span>Start date</span>
-              <input type="date" name="start_date" defaultValue={startDate ?? ""} />
-            </label>
-            <label className="filter-field">
-              <span>End date</span>
-              <input type="date" name="end_date" defaultValue={endDate ?? ""} />
-            </label>
-            <label className="filter-field">
-              <span>Source</span>
-              <select name="source" defaultValue={source ?? "all"}>
-                <option value="all">All sources</option>
-                {sourceChoices.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="filter-field">
-              <span>Status</span>
-              <select name="status" defaultValue={status ?? "all"}>
-                <option value="all">All statuses</option>
-                {statusChoices.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          <div className="filter-actions">
-            <button type="submit">Apply filters</button>
-            <Link href="/macro-radar" className="filter-reset">
-              Reset
-            </Link>
-          </div>
-        </form>
-      </section>
+        </CardHeader>
+        <CardContent>
+          <form method="get" className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
+              <div className="space-y-1.5">
+                <Label htmlFor="score_min">Score min</Label>
+                <Input
+                  id="score_min"
+                  type="number"
+                  name="score_min"
+                  min={0}
+                  max={100}
+                  defaultValue={scoreMin ?? ""}
+                  placeholder="0"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="score_max">Score max</Label>
+                <Input
+                  id="score_max"
+                  type="number"
+                  name="score_max"
+                  min={0}
+                  max={100}
+                  defaultValue={scoreMax ?? ""}
+                  placeholder="100"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="start_date">Start date</Label>
+                <Input id="start_date" type="date" name="start_date" defaultValue={startDate ?? ""} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="end_date">End date</Label>
+                <Input id="end_date" type="date" name="end_date" defaultValue={endDate ?? ""} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="source">Source</Label>
+                <select
+                  id="source"
+                  name="source"
+                  defaultValue={source ?? "all"}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="all">All sources</option>
+                  {sourceChoices.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="status">Status</Label>
+                <select
+                  id="status"
+                  name="status"
+                  defaultValue={status ?? "all"}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="all">All statuses</option>
+                  {statusChoices.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Button type="submit">Apply filters</Button>
+              <Button variant="outline" asChild>
+                <Link href="/macro-radar">Reset</Link>
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
 
       <Section
         title="Priority Radar"
@@ -251,6 +313,11 @@ export default async function MacroRadarPage({
         subtitle="Score below 50. Useful for context and history."
         events={loggedEvents}
       />
-    </>
+      <Section
+        title="Unscored"
+        subtitle="New events that still need significance scoring."
+        events={unscoredEvents}
+      />
+    </div>
   );
 }
